@@ -24,7 +24,7 @@ import {
   updateDoc
 } from "firebase/firestore";
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { bn } from 'date-fns/locale';
 
 async function getUserProfile(userId: string): Promise<User | null> {
@@ -76,6 +76,9 @@ export default function MessagesPage() {
       }
       setConversations(convs);
       setLoading(false);
+    }, (error) => {
+        console.error("Error fetching conversations: ", error);
+        setLoading(false);
     });
 
     return () => unsubscribe();
@@ -133,7 +136,7 @@ export default function MessagesPage() {
   
   const formatConvTimestamp = (timestamp: any) => {
      if (!timestamp?.toDate) return '';
-     return format(timestamp.toDate(), 'P', { locale: bn });
+     return formatDistanceToNow(timestamp.toDate(), { addSuffix: true, locale: bn });
   }
 
   return (
