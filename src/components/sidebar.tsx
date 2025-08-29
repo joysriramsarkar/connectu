@@ -105,18 +105,16 @@ export function Sidebar() {
                 <Loader2 className="h-6 w-6 animate-spin" />
             </div>
         ) : user && (
-           <div className="flex items-center gap-3 justify-center xl:justify-start">
-              <Link href={`/profile/${user.uid}`}>
-                  <Avatar>
-                  <AvatarImage src={user.photoURL || "https://picsum.photos/seed/user-placeholder/200"} alt={user.displayName || "User"} />
-                  <AvatarFallback>{user.displayName?.substring(0, 2) || 'U'}</AvatarFallback>
-                  </Avatar>
-              </Link>
+           <Link href={`/profile/${user.uid}`} className="flex items-center gap-3 justify-center xl:justify-start">
+              <Avatar>
+              <AvatarImage src={user.photoURL || "https://picsum.photos/seed/user-placeholder/200"} alt={user.displayName || "User"} />
+              <AvatarFallback>{user.displayName?.substring(0, 2) || 'U'}</AvatarFallback>
+              </Avatar>
               <div className="hidden xl:inline">
                   <p className="font-bold truncate">{user.displayName || "User"}</p>
                   <p className="text-sm text-muted-foreground truncate">{user.email}</p>
               </div>
-           </div>
+           </Link>
         )}
       </div>
     </aside>

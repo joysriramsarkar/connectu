@@ -4,6 +4,7 @@
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { Sidebar } from '@/components/sidebar';
+import { MobileNav } from '@/components/mobile-nav';
 import { usePathname } from 'next/navigation';
 
 export default function RootLayout({
@@ -12,7 +13,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
-  const showSidebar = pathname !== '/login' && pathname !== '/signup';
+  const showNav = pathname !== '/login' && pathname !== '/signup';
 
   return (
     <html lang="bn" suppressHydrationWarning>
@@ -25,12 +26,13 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-background text-foreground">
         <div className="flex min-h-screen w-full">
-          {showSidebar && <Sidebar />}
-          <main className="flex-1 overflow-y-auto">
+          {showNav && <Sidebar />}
+          <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
              <div className="w-full">
                 {children}
              </div>
           </main>
+          {showNav && <MobileNav />}
         </div>
         <Toaster />
       </body>
