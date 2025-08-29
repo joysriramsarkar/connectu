@@ -167,7 +167,7 @@ export default function ProfilePage() {
           </div>
           <div className="flex gap-2">
             {currentUser?.uid === user.id ? (
-              <Button variant="outline">প্রোফাইল সম্পাদনা করুন</Button>
+              <Button variant="outline" onClick={() => router.push('/profile/edit')}>প্রোফাইল সম্পাদনা করুন</Button>
             ) : (
               currentUser && (
                 <>
