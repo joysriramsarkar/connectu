@@ -114,15 +114,20 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
             const snapshot = await uploadBytes(imageRef, imageFile);
             imageUrl = await getDownloadURL(snapshot.ref);
         }
-
-        await addDoc(collection(db, "posts"), {
+        
+        const postData: any = {
             authorId: user.id,
             content: values.content,
-            image: imageUrl,
             createdAt: serverTimestamp(),
             likes: 0,
             comments: 0,
-        });
+        };
+
+        if (imageUrl) {
+            postData.image = imageUrl;
+        }
+
+        await addDoc(collection(db, "posts"), postData);
 
         toast({
           title: "পোস্ট সফল হয়েছে!",
