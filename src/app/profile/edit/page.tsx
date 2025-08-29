@@ -93,14 +93,14 @@ export default function EditProfilePage() {
 
         if (avatarFile) {
             const avatarRef = ref(storage, `avatars/${currentUser.uid}`);
-            await uploadBytes(avatarRef, avatarFile);
-            avatarUrl = await getDownloadURL(avatarRef);
+            const snapshot = await uploadBytes(avatarRef, avatarFile);
+            avatarUrl = await getDownloadURL(snapshot.ref);
         }
 
         if (coverFile) {
             const coverRef = ref(storage, `covers/${currentUser.uid}`);
-            await uploadBytes(coverRef, coverFile);
-            coverUrl = await getDownloadURL(coverRef);
+            const snapshot = await uploadBytes(coverRef, coverFile);
+            coverUrl = await getDownloadURL(snapshot.ref);
         }
 
       const userDocRef = doc(db, "users", currentUser.uid);

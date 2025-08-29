@@ -111,8 +111,8 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
 
         if (imageFile) {
             const imageRef = ref(storage, `posts/${user.id}_${Date.now()}`);
-            await uploadBytes(imageRef, imageFile);
-            imageUrl = await getDownloadURL(imageRef);
+            const snapshot = await uploadBytes(imageRef, imageFile);
+            imageUrl = await getDownloadURL(snapshot.ref);
         }
 
         await addDoc(collection(db, "posts"), {
