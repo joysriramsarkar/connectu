@@ -25,7 +25,9 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-background text-foreground">
         <div className="flex min-h-screen w-full">
-          {showSidebar && <Sidebar />}
+          <div className={showSidebar ? 'block' : 'hidden'}>
+            <Sidebar />
+          </div>
           <main className="flex-1">
             {children}
           </main>
