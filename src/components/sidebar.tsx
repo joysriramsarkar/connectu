@@ -85,15 +85,17 @@ export function Sidebar() {
             <h1 className="text-2xl font-bold hidden xl:inline">ConnectU</h1>
         </Link>
         <MainNav userId={user?.uid || null} loading={loading} />
-        <Button className="w-full rounded-full py-6 text-lg hidden xl:block">
+      </div>
+
+      <div className="flex-grow"></div>
+
+      <div className="flex flex-col gap-4">
+         <Button className="w-full rounded-full py-6 text-lg hidden xl:block">
             পোস্ট করুন
         </Button>
         <Button size="icon" className="w-12 h-12 rounded-full xl:hidden">
             <PlusSquare />
         </Button>
-      </div>
-
-      <div className="flex flex-col gap-4">
         {user && 
             <Button variant="ghost" onClick={handleLogout} className="flex items-center gap-3 justify-center xl:justify-start rounded-full px-4 py-2 text-lg">
                 <LogOut className="h-6 w-6" />
