@@ -12,27 +12,60 @@ import { Heart, MessageCircle, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { bn } from 'date-fns/locale';
+import { auth, db } from '@/lib/firebase';
+import { doc, getDoc, setDoc, deleteDoc, increment, writeBatch } from 'firebase/firestore';
+import { useAuthState } from 'react-firebase-hooks/auth';
 
 interface PostCardProps {
   post: Post;
 }
 
 export function PostCard({ post }: PostCardProps) {
+  const [user] = useAuthState(auth);
   const [isLiked, setIsLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(post.likes);
+  const [likeCount, setLikeCount] = useState(post.likes || 0);
+  const [likeLoading, setLikeLoading] = useState(false);
 
-  const handleLike = () => {
-    // In a real app, you'd update the like count in the database.
-    if (isLiked) {
-      setLikeCount(likeCount - 1);
-    } else {
-      setLikeCount(likeCount + 1);
+  useEffect(() => {
+    if (user) {
+      const likeDocRef = doc(db, "posts", post.id, "likes", user.uid);
+      getDoc(likeDocRef).then(docSnap => {
+        if (docSnap.exists()) {
+          setIsLiked(true);
+        }
+      });
     }
-    setIsLiked(!isLiked);
+  }, [user, post.id]);
+
+  const handleLike = async () => {
+    if (!user || likeLoading) return;
+    setLikeLoading(true);
+    
+    const postRef = doc(db, "posts", post.id);
+    const likeRef = doc(db, "posts", post.id, "likes", user.uid);
+
+    try {
+        const batch = writeBatch(db);
+        if (isLiked) {
+            batch.delete(likeRef);
+            batch.update(postRef, { likes: increment(-1) });
+            setLikeCount(prev => prev - 1);
+            setIsLiked(false);
+        } else {
+            batch.set(likeRef, { userId: user.uid });
+            batch.update(postRef, { likes: increment(1) });
+            setLikeCount(prev => prev + 1);
+            setIsLiked(true);
+        }
+        await batch.commit();
+    } catch (error) {
+        console.error("Error liking post: ", error);
+    } finally {
+        setLikeLoading(false);
+    }
   };
   
   const formattedDate = post.createdAt?.toDate ? formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true, locale: bn }) : 'কিছুক্ষণ আগে';
-
 
   if (!post.author) {
     return (
@@ -81,13 +114,13 @@ export function PostCard({ post }: PostCardProps) {
       </CardContent>
       <CardFooter className="p-4 pt-2">
         <div className="flex justify-start gap-4 text-muted-foreground">
-          <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={handleLike}>
+          <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={handleLike} disabled={!user || likeLoading}>
             <Heart className={cn("h-5 w-5", isLiked && 'fill-red-500 text-red-500')} />
-            <span>{likeCount.toLocaleString('bn-BD')}</span>
+            <span>{(likeCount || 0).toLocaleString('bn-BD')}</span>
           </Button>
           <Button variant="ghost" size="sm" className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5" />
-            <span>{post.comments.toLocaleString('bn-BD')}</span>
+            <span>{(post.comments || 0).toLocaleString('bn-BD')}</span>
           </Button>
           <Button variant="ghost" size="sm" className="flex items-center gap-2">
             <Send className="h-5 w-5" />

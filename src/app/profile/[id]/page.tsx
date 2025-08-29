@@ -59,12 +59,17 @@ export default function ProfilePage() {
       where("authorId", "==", userId),
       orderBy("createdAt", "desc")
     );
-    const querySnapshot = await getDocs(postsQuery);
-    const postsData = querySnapshot.docs.map((doc) => {
-        return { id: doc.id, ...doc.data(), author: author } as Post;
-    });
-    setPosts(postsData);
-    setPostsLoading(false);
+    try {
+      const querySnapshot = await getDocs(postsQuery);
+      const postsData = querySnapshot.docs.map((doc) => {
+          return { id: doc.id, ...doc.data(), author: author } as Post;
+      });
+      setPosts(postsData);
+    } catch(error) {
+      console.error("Error fetching posts: ", error);
+    } finally {
+      setPostsLoading(false);
+    }
   }, [userId]);
 
   useEffect(() => {
@@ -203,5 +208,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-    
