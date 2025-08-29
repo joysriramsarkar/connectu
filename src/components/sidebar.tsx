@@ -8,18 +8,18 @@ import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Home, MessageSquare, User, Bell, PlusSquare, Rss, LogOut } from "lucide-react";
+import { Home, MessageSquare, User, Bell, PlusSquare, Rss, LogOut, Loader2 } from "lucide-react";
 import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 
 
-const MainNav = ({ userId }: { userId: string | null }) => {
+const MainNav = ({ userId, loading }: { userId: string | null, loading: boolean }) => {
   const pathname = usePathname();
   
   const navItems = [
     { href: "/", label: "হোম", icon: Home },
     { href: "/messages", label: "বার্তা", icon: MessageSquare },
-    { href: userId ? `/profile/${userId}` : "/login", label: "প্রোফাইল", icon: User },
+    { href: loading ? "#" : (userId ? `/profile/${userId}` : "/login"), label: "প্রোফাইল", icon: User },
     { href: "#", label: "বিজ্ঞপ্তি", icon: Bell },
   ];
 
@@ -31,7 +31,8 @@ const MainNav = ({ userId }: { userId: string | null }) => {
           href={href}
           className={cn(
             "flex items-center gap-3 rounded-full px-4 py-2 text-lg transition-colors hover:bg-accent/50 w-full",
-            pathname === href ? "font-bold" : "font-normal"
+            pathname === href && !loading ? "font-bold" : "font-normal",
+            loading && label === "প্রোফাইল" && "cursor-not-allowed opacity-50"
           )}
         >
           <Icon className="h-6 w-6" />
@@ -46,10 +47,12 @@ export function Sidebar() {
   const router = useRouter();
   const { toast } = useToast();
   const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      setLoading(false);
     });
     return () => unsubscribe();
   }, []);
@@ -81,7 +84,7 @@ export function Sidebar() {
             <Rss className="h-8 w-8 text-primary" />
             <h1 className="text-2xl font-bold hidden xl:inline">ConnectU</h1>
         </Link>
-        <MainNav userId={user?.uid || null} />
+        <MainNav userId={user?.uid || null} loading={loading} />
         <Button className="mt-6 w-full rounded-full py-6 text-lg hidden xl:block">
             পোস্ট করুন
         </Button>
@@ -91,11 +94,17 @@ export function Sidebar() {
       </div>
 
       <div className="flex flex-col gap-4">
-        <Button variant="ghost" onClick={handleLogout} className="flex items-center gap-3 justify-center xl:justify-start rounded-full px-4 py-2 text-lg">
-          <LogOut className="h-6 w-6" />
-          <span className="hidden xl:inline">লগ আউট</span>
-        </Button>
-        {user && (
+        {user && 
+            <Button variant="ghost" onClick={handleLogout} className="flex items-center gap-3 justify-center xl:justify-start rounded-full px-4 py-2 text-lg">
+                <LogOut className="h-6 w-6" />
+                <span className="hidden xl:inline">লগ আউট</span>
+            </Button>
+        }
+        {loading ? (
+            <div className="flex items-center justify-center py-2">
+                <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+        ) : user && (
            <div className="flex items-center gap-3 justify-center xl:justify-start">
               <Link href={`/profile/${user.uid}`}>
                   <Avatar>
@@ -104,8 +113,8 @@ export function Sidebar() {
                   </Avatar>
               </Link>
               <div className="hidden xl:inline">
-                  <p className="font-bold">{user.displayName || "User"}</p>
-                  <p className="text-sm text-muted-foreground">{user.email}</p>
+                  <p className="font-bold truncate">{user.displayName || "User"}</p>
+                  <p className="text-sm text-muted-foreground truncate">{user.email}</p>
               </div>
            </div>
         )}
