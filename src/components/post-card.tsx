@@ -152,7 +152,7 @@ export function PostCard({ post, user }: PostCardProps) {
       <CardContent className="px-4 pb-2 space-y-4">
         <p className="whitespace-pre-wrap">{post.content}</p>
         {post.image && (
-          <div className="relative aspect-video rounded-lg overflow-hidden border">
+          <div className="relative mt-3 aspect-[16/9] w-full rounded-lg overflow-hidden border">
             <Image src={post.image} alt="Post image" fill className="object-cover" />
           </div>
         )}

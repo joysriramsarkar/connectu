@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,13 +10,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
-import { Image, Hash, Loader2 } from "lucide-react";
+import { Image as ImageIcon, Hash, Loader2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateRelevantHashtags } from "@/ai/flows/generate-relevant-hashtags";
 import { Badge } from "./ui/badge";
 import { User } from "@/lib/data";
-import { db } from "@/lib/firebase";
+import { db, storage } from "@/lib/firebase";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import Image from "next/image";
 
 
 const postSchema = z.object({
@@ -32,6 +34,9 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
   const [hashtags, setHashtags] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof postSchema>>({
@@ -40,6 +45,22 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
       content: "",
     },
   });
+  
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    if(imageInputRef.current) {
+        imageInputRef.current.value = "";
+    }
+  }
 
   const handleGenerateHashtags = async () => {
     const postContent = form.getValues("content");
@@ -86,9 +107,18 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
 
     setIsSubmitting(true);
     try {
+        let imageUrl: string | undefined = undefined;
+
+        if (imageFile) {
+            const imageRef = ref(storage, `posts/${user.id}_${Date.now()}`);
+            await uploadBytes(imageRef, imageFile);
+            imageUrl = await getDownloadURL(imageRef);
+        }
+
         await addDoc(collection(db, "posts"), {
             authorId: user.id,
             content: values.content,
+            image: imageUrl,
             createdAt: serverTimestamp(),
             likes: 0,
             comments: 0,
@@ -100,6 +130,7 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
         });
         form.reset();
         setHashtags([]);
+        removeImage();
         onPostCreated();
     } catch (error) {
         console.error("Error creating post: ", error);
@@ -125,24 +156,41 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
                 <AvatarImage src={user.avatar} alt={user.name} />
                 <AvatarFallback>{user.name.substring(0, 2)}</AvatarFallback>
               </Avatar>
-              <FormField
-                control={form.control}
-                name="content"
-                render={({ field }) => (
-                  <FormItem className="flex-1">
-                    <FormControl>
-                      <Textarea
-                        placeholder="আপনার মনে কি চলছে?"
-                        className="resize-none border-none focus-visible:ring-0 text-lg"
-                        rows={3}
-                        {...field}
-                        disabled={isLoading}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+              <div className="flex-1 space-y-2">
+                <FormField
+                  control={form.control}
+                  name="content"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Textarea
+                          placeholder="আপনার মনে কি চলছে?"
+                          className="resize-none border-none focus-visible:ring-0 text-lg p-0"
+                          rows={3}
+                          {...field}
+                          disabled={isLoading}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {imagePreview && (
+                    <div className="relative">
+                        <Image src={imagePreview} alt="Image preview" width={500} height={300} className="rounded-lg object-cover w-full max-h-96" />
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-2 right-2 h-7 w-7 rounded-full"
+                            onClick={removeImage}
+                            disabled={isLoading}
+                        >
+                            <X className="h-4 w-4"/>
+                        </Button>
+                    </div>
                 )}
-              />
+              </div>
             </div>
             
             {hashtags.length > 0 && (
@@ -156,15 +204,16 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
             )}
 
             <div className="flex justify-between items-center pl-16">
-              <div className="flex gap-2 text-muted-foreground">
-                <Button variant="ghost" size="icon" type="button" disabled={isLoading}>
-                  <Image className="h-5 w-5" />
+              <div className="flex gap-1 text-muted-foreground">
+                <Button variant="ghost" size="icon" type="button" onClick={() => imageInputRef.current?.click()} disabled={isLoading}>
+                  <ImageIcon className="h-5 w-5" />
                 </Button>
+                 <input type="file" ref={imageInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
                 <Button variant="ghost" size="icon" type="button" onClick={handleGenerateHashtags} disabled={isLoading}>
                   {isGenerating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Hash className="h-5 w-5" />}
                 </Button>
               </div>
-              <Button type="submit" className="rounded-full" disabled={isLoading}>
+              <Button type="submit" className="rounded-full" disabled={isLoading || !form.formState.isValid}>
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'পোস্ট করুন'}
               </Button>
             </div>
