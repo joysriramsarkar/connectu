@@ -1,17 +1,63 @@
 
+"use client";
 
-import { mockUsers, mockPosts } from "@/lib/data";
+import { useEffect, useState } from 'react';
 import { notFound } from "next/navigation";
 import Image from "next/image";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { Post, User } from "@/lib/data";
+import { mockPosts } from "@/lib/data";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PostCard } from "@/components/post-card";
-import { User, Calendar } from "lucide-react";
+import { User as UserIcon, Calendar, Loader2 } from "lucide-react";
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+
+async function getUserProfile(userId: string): Promise<User | null> {
+  const userDocRef = doc(db, "users", userId);
+  const userDoc = await getDoc(userDocRef);
+  if (userDoc.exists()) {
+    return userDoc.data() as User;
+  }
+  return null;
+}
 
 export default function ProfilePage({ params }: { params: { id: string } }) {
-  const user = mockUsers.find(u => u.id === params.id);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+        setCurrentUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      setLoading(true);
+      const userProfile = await getUserProfile(params.id);
+      if (userProfile) {
+        setUser(userProfile);
+      }
+      setLoading(false);
+    };
+
+    fetchUser();
+  }, [params.id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-16 w-16 animate-spin" />
+      </div>
+    );
+  }
   
   if (!user) {
     notFound();
@@ -32,7 +78,7 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
               <AvatarFallback>{user.name.substring(0, 2)}</AvatarFallback>
             </Avatar>
           </div>
-          {user.id === 'user-1' ? (
+          {currentUser?.uid === user.id ? (
             <Button variant="outline">প্রোফাইল সম্পাদনা করুন</Button>
           ) : (
             <Button>অনুসরণ করুন</Button>
@@ -48,11 +94,11 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
 
         <div className="flex items-center gap-4 mt-4 text-muted-foreground">
             <div className="flex items-center gap-1">
-                <User className="w-4 h-4" />
+                <UserIcon className="w-4 h-4" />
                 <span><span className="font-bold text-foreground">{user.following.toLocaleString('bn-BD')}</span> অনুসরণ করছেন</span>
             </div>
              <div className="flex items-center gap-1">
-                <User className="w-4 h-4" />
+                <UserIcon className="w-4 h-4" />
                 <span><span className="font-bold text-foreground">{user.followers.toLocaleString('bn-BD')}</span> অনুসরণকারী</span>
             </div>
         </div>

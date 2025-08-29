@@ -1,8 +1,10 @@
 
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -11,15 +13,15 @@ import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 
 
-const navItems = [
-  { href: "/", label: "হোম", icon: Home },
-  { href: "/messages", label: "বার্তা", icon: MessageSquare },
-  { href: "/profile/user-1", label: "প্রোফাইল", icon: User },
-  { href: "#", label: "বিজ্ঞপ্তি", icon: Bell },
-];
-
-const MainNav = () => {
+const MainNav = ({ userId }: { userId: string | null }) => {
   const pathname = usePathname();
+  
+  const navItems = [
+    { href: "/", label: "হোম", icon: Home },
+    { href: "/messages", label: "বার্তা", icon: MessageSquare },
+    { href: userId ? `/profile/${userId}` : "/login", label: "প্রোফাইল", icon: User },
+    { href: "#", label: "বিজ্ঞপ্তি", icon: Bell },
+  ];
 
   return (
     <nav className="flex flex-col items-start gap-2">
@@ -43,6 +45,15 @@ const MainNav = () => {
 export function Sidebar() {
   const router = useRouter();
   const { toast } = useToast();
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
+
 
   const handleLogout = async () => {
     try {
@@ -70,7 +81,7 @@ export function Sidebar() {
             <Rss className="h-8 w-8 text-primary" />
             <h1 className="text-2xl font-bold hidden xl:inline">ConnectU</h1>
         </Link>
-        <MainNav />
+        <MainNav userId={user?.uid || null} />
         <Button className="mt-6 w-full rounded-full py-6 text-lg hidden xl:block">
             পোস্ট করুন
         </Button>
@@ -84,20 +95,21 @@ export function Sidebar() {
           <LogOut className="h-6 w-6" />
           <span className="hidden xl:inline">লগ আউট</span>
         </Button>
-        <div className="flex items-center gap-3 justify-center xl:justify-start">
-          <Link href="/profile/user-1">
-              <Avatar>
-              <AvatarImage src="https://picsum.photos/seed/user1/200" alt="আকাশ আহমেদ" />
-              <AvatarFallback>আআ</AvatarFallback>
-              </Avatar>
-          </Link>
-          <div className="hidden xl:inline">
-              <p className="font-bold">আকাশ আহমেদ</p>
-              <p className="text-sm text-muted-foreground">@akash_ahmed</p>
-          </div>
-        </div>
+        {user && (
+           <div className="flex items-center gap-3 justify-center xl:justify-start">
+              <Link href={`/profile/${user.uid}`}>
+                  <Avatar>
+                  <AvatarImage src={user.photoURL || "https://picsum.photos/seed/user-placeholder/200"} alt={user.displayName || "User"} />
+                  <AvatarFallback>{user.displayName?.substring(0, 2) || 'U'}</AvatarFallback>
+                  </Avatar>
+              </Link>
+              <div className="hidden xl:inline">
+                  <p className="font-bold">{user.displayName || "User"}</p>
+                  <p className="text-sm text-muted-foreground">{user.email}</p>
+              </div>
+           </div>
+        )}
       </div>
     </aside>
   );
 }
-

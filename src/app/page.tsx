@@ -3,32 +3,56 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { PostCard } from "@/components/post-card";
 import { CreatePost } from "@/components/create-post";
-import { mockPosts, mockUsers, User } from "@/lib/data";
+import { mockPosts, mockUsers, User as AppUser } from "@/lib/data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Loader2 } from 'lucide-react';
 
+async function getUserProfile(userId: string): Promise<AppUser | null> {
+  const userDocRef = doc(db, "users", userId);
+  const userDoc = await getDoc(userDocRef);
+  if (userDoc.exists()) {
+    return userDoc.data() as AppUser;
+  }
+  return null;
+}
+
+async function createUserProfile(firebaseUser: FirebaseUser): Promise<AppUser> {
+    const newUser: AppUser = {
+        id: firebaseUser.uid,
+        name: firebaseUser.displayName || 'New User',
+        handle: firebaseUser.email?.split('@')[0] || `user${Date.now()}`,
+        avatar: firebaseUser.photoURL || `https://picsum.photos/seed/${firebaseUser.uid}/200`,
+        coverPhoto: `https://picsum.photos/seed/cover${firebaseUser.uid}/1200/400`,
+        bio: 'Welcome to ConnectU!',
+        followers: 0,
+        following: 0,
+    };
+    await setDoc(doc(db, "users", firebaseUser.uid), newUser);
+    return newUser;
+}
+
+
 export default function Home() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        // For now, using mock user data. We will replace this with real user data from Firestore.
-        const currentUser = mockUsers.find(u => u.id === 'user-1');
-        if (currentUser) {
-            // @ts-ignore
-            currentUser.email = firebaseUser.email;
-            setUser(currentUser);
+        let userProfile = await getUserProfile(firebaseUser.uid);
+        if (!userProfile) {
+            userProfile = await createUserProfile(firebaseUser);
         }
+        setUser(userProfile);
       } else {
         router.push('/login');
       }
