@@ -39,7 +39,7 @@ const NotificationMessage = ({ notification }: { notification: NotificationType 
         case 'like':
             return (
                 <p>
-                    <Link href={`/profile/${notification.sender.id}`} className="font-bold hover:underline">{notification.sender.name}</Link>
+                    <Link href={`/profile/${notification.sender.id}`} onClick={(e) => e.stopPropagation()} className="font-bold hover:underline">{notification.sender.name}</Link>
                     {' আপনার পোস্টে একটি লাইক দিয়েছেন: "'}
                     <span className="italic">{notification.postContent?.substring(0, 30)}...</span>"
                 </p>
@@ -47,7 +47,7 @@ const NotificationMessage = ({ notification }: { notification: NotificationType 
         case 'comment':
             return (
                 <p>
-                    <Link href={`/profile/${notification.sender.id}`} className="font-bold hover:underline">{notification.sender.name}</Link>
+                    <Link href={`/profile/${notification.sender.id}`} onClick={(e) => e.stopPropagation()} className="font-bold hover:underline">{notification.sender.name}</Link>
                     {' আপনার পোস্টে একটি মন্তব্য করেছেন: "'}
                     <span className="italic">{notification.postContent?.substring(0, 30)}...</span>"
                 </p>
@@ -55,7 +55,7 @@ const NotificationMessage = ({ notification }: { notification: NotificationType 
         case 'follow':
             return (
                 <p>
-                    <Link href={`/profile/${notification.sender.id}`} className="font-bold hover:underline">{notification.sender.name}</Link>
+                    <Link href={`/profile/${notification.sender.id}`} onClick={(e) => e.stopPropagation()} className="font-bold hover:underline">{notification.sender.name}</Link>
                     {' আপনাকে অনুসরণ করা শুরু করেছেন।'}
                 </p>
             );
@@ -114,9 +114,7 @@ export default function NotificationsPage() {
         if (notification.type === 'follow') {
             router.push(`/profile/${notification.sender.id}`);
         } else if (notification.postId) {
-            // This route doesn't exist yet, but is a good idea for the future
-            // router.push(`/post/${notification.postId}`);
-            console.log(`Would navigate to post ${notification.postId}`)
+            router.push(`/post/${notification.postId}`);
         }
     };
 
@@ -142,7 +140,7 @@ export default function NotificationsPage() {
                        </div>
                        <div className="flex-1">
                            <div className="flex items-center gap-3">
-                               <Link href={`/profile/${notification.sender.id}`}>
+                               <Link href={`/profile/${notification.sender.id}`} onClick={(e) => e.stopPropagation()}>
                                   <Avatar className="h-10 w-10">
                                       <AvatarImage src={notification.sender.avatar} alt={notification.sender.name} />
                                       <AvatarFallback>{notification.sender.name.substring(0,2)}</AvatarFallback>
