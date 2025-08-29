@@ -1,19 +1,171 @@
 
 "use client";
 
-import { Bell } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
+import { collection, query, where, orderBy, onSnapshot, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { Notification as NotificationType, User } from '@/lib/data';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent } from "@/components/ui/card";
+import { Loader2, Bell, Heart, MessageCircle, User as UserIcon } from "lucide-react";
+import Link from 'next/link';
+import { formatDistanceToNow } from 'date-fns';
+import { bn } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
+
+async function getUserProfile(userId: string): Promise<User | null> {
+    if (!userId) return null;
+    const userDocRef = doc(db, "users", userId);
+    const userDoc = await getDoc(userDocRef);
+    if (userDoc.exists()) {
+      return { id: userDoc.id, ...userDoc.data() } as User;
+    }
+    return null;
+}
+
+const NotificationIcon = ({ type }: { type: NotificationType['type'] }) => {
+    switch (type) {
+        case 'like': return <Heart className="w-5 h-5 text-red-500" />;
+        case 'comment': return <MessageCircle className="w-5 h-5 text-blue-500" />;
+        case 'follow': return <UserIcon className="w-5 h-5 text-green-500" />;
+        default: return <Bell className="w-5 h-5 text-gray-500" />;
+    }
+}
+
+const NotificationMessage = ({ notification }: { notification: NotificationType }) => {
+    switch (notification.type) {
+        case 'like':
+            return (
+                <p>
+                    <Link href={`/profile/${notification.sender.id}`} className="font-bold hover:underline">{notification.sender.name}</Link>
+                    {' আপনার পোস্টে একটি লাইক দিয়েছেন: "'}
+                    <span className="italic">{notification.postContent?.substring(0, 30)}...</span>"
+                </p>
+            );
+        case 'comment':
+            return (
+                <p>
+                    <Link href={`/profile/${notification.sender.id}`} className="font-bold hover:underline">{notification.sender.name}</Link>
+                    {' আপনার পোস্টে একটি মন্তব্য করেছেন: "'}
+                    <span className="italic">{notification.postContent?.substring(0, 30)}...</span>"
+                </p>
+            );
+        case 'follow':
+            return (
+                <p>
+                    <Link href={`/profile/${notification.sender.id}`} className="font-bold hover:underline">{notification.sender.name}</Link>
+                    {' আপনাকে অনুসরণ করা শুরু করেছেন।'}
+                </p>
+            );
+        default:
+            return <p>নতুন নোটিফিকেশন</p>;
+    }
+}
+
 
 export default function NotificationsPage() {
+    const router = useRouter();
+    const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
+    const [notifications, setNotifications] = useState<NotificationType[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                setCurrentUser(user);
+            } else {
+                router.push('/login');
+            }
+        });
+        return () => unsubscribe();
+    }, [router]);
+
+    useEffect(() => {
+        if (!currentUser) return;
+        setLoading(true);
+        const q = query(
+            collection(db, "notifications"),
+            where("recipientId", "==", currentUser.uid),
+            orderBy("createdAt", "desc")
+        );
+
+        const unsubscribe = onSnapshot(q, async (snapshot) => {
+            const notifs = await Promise.all(snapshot.docs.map(async (doc) => {
+                const data = doc.data();
+                const sender = await getUserProfile(data.senderId);
+                return { id: doc.id, ...data, sender } as NotificationType;
+            }));
+            setNotifications(notifs.filter(n => n.sender));
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [currentUser]);
+
+    const handleNotificationClick = async (notification: NotificationType) => {
+        if (!notification.read) {
+            await updateDoc(doc(db, "notifications", notification.id), { read: true });
+        }
+        if (notification.type === 'follow') {
+            router.push(`/profile/${notification.sender.id}`);
+        } else if (notification.postId) {
+            // This route doesn't exist yet, but is a good idea for the future
+            // router.push(`/post/${notification.postId}`);
+            console.log(`Would navigate to post ${notification.postId}`)
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-screen">
+                <Loader2 className="h-16 w-16 animate-spin" />
+            </div>
+        );
+    }
+    
+
   return (
     <div className="p-4 md:p-6">
       <h1 className="text-2xl font-bold mb-6">বিজ্ঞপ্তিসমূহ</h1>
-      <div className="border rounded-lg">
-        <div className="flex flex-col items-center justify-center text-center p-16 text-muted-foreground">
-            <Bell className="w-16 h-16 mb-4" />
-            <h2 className="text-xl font-semibold">এখনও কোনো বিজ্ঞপ্তি নেই</h2>
-            <p className="mt-2">আপনার নতুন কোনো নোটিফিকেশন থাকলে এখানে দেখতে পাবেন।</p>
+      {notifications.length > 0 ? (
+        <div className="space-y-4">
+            {notifications.map(notification => (
+                 <Card key={notification.id} onClick={() => handleNotificationClick(notification)} className={cn("cursor-pointer hover:bg-accent/50", !notification.read && "bg-primary/10 border-primary")}>
+                    <CardContent className="p-4 flex items-start gap-4">
+                       <div className="flex-shrink-0">
+                           <NotificationIcon type={notification.type} />
+                       </div>
+                       <div className="flex-1">
+                           <div className="flex items-center gap-3">
+                               <Link href={`/profile/${notification.sender.id}`}>
+                                  <Avatar className="h-10 w-10">
+                                      <AvatarImage src={notification.sender.avatar} alt={notification.sender.name} />
+                                      <AvatarFallback>{notification.sender.name.substring(0,2)}</AvatarFallback>
+                                  </Avatar>
+                               </Link>
+                               <div>
+                                    <NotificationMessage notification={notification} />
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                        {formatDistanceToNow(notification.createdAt.toDate(), { addSuffix: true, locale: bn })}
+                                    </p>
+                               </div>
+                           </div>
+                       </div>
+                    </CardContent>
+                 </Card>
+            ))}
         </div>
-      </div>
+      ) : (
+        <Card>
+            <CardContent className="flex flex-col items-center justify-center text-center p-16 text-muted-foreground">
+                <Bell className="w-16 h-16 mb-4" />
+                <h2 className="text-xl font-semibold">এখনও কোনো বিজ্ঞপ্তি নেই</h2>
+                <p className="mt-2">আপনার নতুন কোনো নোটিফিকেশন থাকলে এখানে দেখতে পাবেন।</p>
+            </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

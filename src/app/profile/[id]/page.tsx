@@ -4,7 +4,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { notFound, useParams } from "next/navigation";
 import Image from "next/image";
-import { doc, getDoc, collection, query, where, getDocs, orderBy, writeBatch, increment, onSnapshot, setDoc } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, getDocs, orderBy, writeBatch, increment, onSnapshot, setDoc, serverTimestamp, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Post, User } from "@/lib/data";
 import { Card, CardContent } from "@/components/ui/card";
@@ -113,6 +113,16 @@ export default function ProfilePage() {
             });
             batch.update(currentUserRef, { following: increment(1) });
             batch.update(targetUserRef, { followers: increment(1) });
+
+            // Create notification
+            const notificationsColRef = collection(db, 'notifications');
+            batch.set(doc(notificationsColRef), {
+                type: 'follow',
+                senderId: currentUser.uid,
+                recipientId: user.id,
+                createdAt: serverTimestamp(),
+                read: false,
+            });
         }
         await batch.commit();
     } catch (error) {
@@ -237,5 +247,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-    

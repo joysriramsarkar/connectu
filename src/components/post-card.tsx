@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { bn } from 'date-fns/locale';
 import { auth, db } from '@/lib/firebase';
-import { doc, setDoc, deleteDoc, increment, writeBatch, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, deleteDoc, increment, writeBatch, onSnapshot, collection, serverTimestamp } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { CommentSheet } from './comment-sheet';
 import { User as FirebaseUser } from 'firebase/auth';
@@ -58,11 +58,13 @@ export function PostCard({ post, user }: PostCardProps) {
   }, [user, post.id]);
 
   const handleLikeToggle = async () => {
-    if (!user || likeLoading || !post.id) return;
+    if (!user || likeLoading || !post.id || !post.author) return;
     setLikeLoading(true);
 
     const postRef = doc(db, "posts", post.id);
     const likeRef = doc(db, "posts", post.id, "likes", user.uid);
+    const notificationsColRef = collection(db, 'notifications');
+
     const batch = writeBatch(db);
 
     try {
@@ -70,8 +72,20 @@ export function PostCard({ post, user }: PostCardProps) {
         batch.delete(likeRef);
         batch.update(postRef, { likes: increment(-1) });
       } else {
-        batch.set(likeRef, { userId: user.uid });
+        batch.set(likeRef, { userId: user.uid, createdAt: serverTimestamp() });
         batch.update(postRef, { likes: increment(1) });
+        
+        if (user.uid !== post.author.id) {
+             batch.set(doc(notificationsColRef), {
+                type: 'like',
+                senderId: user.uid,
+                recipientId: post.author.id,
+                postId: post.id,
+                postContent: post.content,
+                createdAt: serverTimestamp(),
+                read: false,
+            });
+        }
       }
       await batch.commit();
     } catch (error) {
@@ -159,9 +173,7 @@ export function PostCard({ post, user }: PostCardProps) {
         </div>
       </CardFooter>
     </Card>
-    {user && post.id && <CommentSheet postId={post.id} author={post.author} open={isCommentSheetOpen} onOpenChange={setIsCommentSheetOpen} />}
+    {user && post.id && post.author && <CommentSheet postId={post.id} postContent={post.content} author={post.author} open={isCommentSheetOpen} onOpenChange={setIsCommentSheetOpen} />}
     </>
   );
 }
-
-    

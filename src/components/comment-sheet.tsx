@@ -37,6 +37,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface CommentSheetProps {
   postId: string;
+  postContent: string;
   author: User;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -52,7 +53,7 @@ async function getUserProfile(userId: string): Promise<User | null> {
     return null;
 }
 
-export function CommentSheet({ postId, author, open, onOpenChange }: CommentSheetProps) {
+export function CommentSheet({ postId, postContent, author, open, onOpenChange }: CommentSheetProps) {
   const [user] = useAuthState(auth);
   const { toast } = useToast();
   const [comments, setComments] = useState<Comment[]>([]);
@@ -85,12 +86,13 @@ export function CommentSheet({ postId, author, open, onOpenChange }: CommentShee
 
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newComment.trim() || !user || submitting) return;
+    if (!newComment.trim() || !user || submitting || !author) return;
 
     setSubmitting(true);
     
     const postRef = doc(db, "posts", postId);
     const commentsColRef = collection(postRef, "comments");
+    const notificationsColRef = collection(db, 'notifications');
 
     try {
         const batch = writeBatch(db);
@@ -104,6 +106,18 @@ export function CommentSheet({ postId, author, open, onOpenChange }: CommentShee
 
         batch.update(postRef, { comments: increment(1) });
         
+        if (user.uid !== author.id) {
+            batch.set(doc(notificationsColRef), {
+                type: 'comment',
+                senderId: user.uid,
+                recipientId: author.id,
+                postId: postId,
+                postContent: postContent,
+                createdAt: serverTimestamp(),
+                read: false,
+            });
+        }
+
         await batch.commit();
 
         setNewComment("");

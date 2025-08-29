@@ -84,12 +84,12 @@ export default function EditProfilePage() {
   };
 
   const onSubmit: SubmitHandler<ProfileFormValues> = async (data) => {
-    if (!currentUser) return;
+    if (!currentUser || !userProfile) return;
     setIsSubmitting(true);
     
     try {
-        let avatarUrl = userProfile?.avatar;
-        let coverUrl = userProfile?.coverPhoto;
+        let avatarUrl = userProfile.avatar;
+        let coverUrl = userProfile.coverPhoto;
 
         if (avatarFile) {
             const avatarRef = ref(storage, `avatars/${currentUser.uid}`);

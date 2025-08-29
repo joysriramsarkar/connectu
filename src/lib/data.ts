@@ -45,3 +45,14 @@ export type Conversation = {
   lastMessage: string;
   lastMessageTimestamp: Timestamp;
 }
+
+export type Notification = {
+    id: string;
+    type: 'like' | 'comment' | 'follow';
+    sender: User;
+    recipientId: string;
+    postId?: string;
+    postContent?: string;
+    createdAt: Timestamp;
+    read: boolean;
+}
