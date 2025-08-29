@@ -152,7 +152,6 @@ export default function Home() {
                     <p className="text-sm text-muted-foreground truncate">@{suggestedUser.handle}</p>
                   </div>
                 </Link>
-                <Button size="sm" variant="outline" onClick={() => router.push(`/profile/${suggestedUser.id}`)} className="flex-shrink-0">প্রোফাইল দেখুন</Button>
               </div>
             )) : <p className="text-sm text-muted-foreground">কোনো পরামর্শ নেই।</p>}
           </CardContent>

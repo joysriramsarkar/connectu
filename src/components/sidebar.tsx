@@ -79,16 +79,16 @@ export function Sidebar() {
 
   return (
     <aside className="sticky top-0 h-screen md:w-20 xl:w-64 flex-col justify-between p-4 border-r border-border hidden md:flex">
-      <div>
-        <Link href="/" className="mb-8 flex items-center gap-2 justify-center xl:justify-start">
+      <div className="flex flex-col gap-y-4">
+        <Link href="/" className="mb-4 flex items-center gap-2 justify-center xl:justify-start">
             <Rss className="h-8 w-8 text-primary" />
             <h1 className="text-2xl font-bold hidden xl:inline">ConnectU</h1>
         </Link>
         <MainNav userId={user?.uid || null} loading={loading} />
-        <Button className="mt-6 w-full rounded-full py-6 text-lg hidden xl:block">
+        <Button className="w-full rounded-full py-6 text-lg hidden xl:block">
             পোস্ট করুন
         </Button>
-        <Button size="icon" className="mt-6 w-12 h-12 rounded-full xl:hidden">
+        <Button size="icon" className="w-12 h-12 rounded-full xl:hidden">
             <PlusSquare />
         </Button>
       </div>
