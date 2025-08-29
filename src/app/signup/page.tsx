@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createUserWithEmailAndPassword, signInWithPopup, signInAnonymously, onAuthStateChanged, RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithPopup, signInAnonymously, onAuthStateChanged, RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult, FirebaseError } from "firebase/auth";
 import { auth, googleProvider } from '@/lib/firebase';
 import { Button } from "@/components/ui/button";
 import {
@@ -67,6 +67,7 @@ export default function SignupPage() {
   }, [router, toast]);
   
   const setupRecaptcha = () => {
+    if (!isClient) return null;
     if (!window.recaptchaVerifier) {
         window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
             'size': 'invisible',
@@ -140,8 +141,17 @@ export default function SignupPage() {
   const handlePhoneSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setPhoneLoading(true);
+    const appVerifier = setupRecaptcha();
+    if (!appVerifier) {
+        toast({
+            variant: "destructive",
+            title: "ত্রুটি",
+            description: "reCAPTCHA লোড করা যায়নি। অনুগ্রহ করে পৃষ্ঠাটি রিফ্রেশ করুন।",
+        });
+        setPhoneLoading(false);
+        return;
+    }
     try {
-      const appVerifier = setupRecaptcha();
       const result = await signInWithPhoneNumber(auth, `+${phone}`, appVerifier);
       setConfirmationResult(result);
       setPhoneAuthStep('enterOtp');
@@ -150,12 +160,18 @@ export default function SignupPage() {
         description: `আপনার ফোন নম্বর +${phone}-এ একটি OTP পাঠানো হয়েছে।`,
       });
     } catch (error: any) {
-      console.error(error);
-      toast({
-        variant: "destructive",
-        title: "ত্রুটি",
-        description: error.message || "OTP পাঠানো যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
-      });
+        console.error(error);
+        let description = "OTP পাঠানো যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।";
+        if (error instanceof FirebaseError && error.code === 'auth/billing-not-enabled') {
+            description = "ফোন অথেন্টিকেশন এই প্রজেক্টের জন্য সক্রিয় করা নেই। অনুগ্রহ করে Firebase কনসোলে বিলিং চালু করুন।";
+        } else if (error instanceof FirebaseError) {
+            description = error.message;
+        }
+        toast({
+            variant: "destructive",
+            title: "ত্রুটি",
+            description: description,
+        });
     } finally {
       setPhoneLoading(false);
     }
