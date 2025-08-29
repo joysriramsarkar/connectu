@@ -69,15 +69,15 @@ export default function SignupPage() {
   
   const setupRecaptcha = () => {
     if (!isClient || !auth) return null;
-    if (!window.recaptchaVerifier) {
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+    if (!(window as any).recaptchaVerifier) {
+        (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
             'size': 'invisible',
             'callback': () => {
               // reCAPTCHA solved.
             }
         });
     }
-    return window.recaptchaVerifier;
+    return (window as any).recaptchaVerifier;
   }
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -163,9 +163,9 @@ export default function SignupPage() {
     } catch (error: any) {
         console.error(error);
         let description = "OTP পাঠানো যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।";
-        if (error instanceof FirebaseError && error.code === 'auth/billing-not-enabled') {
+        if (error.code === 'auth/billing-not-enabled') {
             description = "ফোন অথেন্টিকেশন এই প্রজেক্টের জন্য সক্রিয় করা নেই। অনুগ্রহ করে Firebase কনসোলে বিলিং চালু করুন।";
-        } else if (error instanceof FirebaseError) {
+        } else if (error.message) {
             description = error.message;
         }
         toast({
@@ -343,3 +343,5 @@ export default function SignupPage() {
     </div>
   );
 }
+
+    
