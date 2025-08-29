@@ -81,7 +81,7 @@ export default function SignupPage() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="password">পাসওয়ার্ড</o>
+              <Label htmlFor="password">পাসওয়ার্ড</Label>
               <Input 
                 id="password" 
                 type="password" 
