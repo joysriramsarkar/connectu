@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { cn } from "@/lib/utils";
-import { Home, MessageSquare, User, Bell, PlusSquare } from "lucide-react";
+import { Home, MessageSquare, User, Bell, Search } from "lucide-react";
 import { auth } from "@/lib/firebase";
 
 export function MobileNav() {
@@ -23,34 +23,27 @@ export function MobileNav() {
   }, []);
 
   const navItems = [
-    { href: "/", icon: Home },
-    { href: "/messages", icon: MessageSquare },
-    { href: "/#", icon: PlusSquare, isCentral: true },
-    { href: "/notifications", icon: Bell },
-    { href: loading || !user ? "/login" : `/profile/${user.uid}`, icon: User },
+    { href: "/", icon: Home, label: 'হোম' },
+    { href: "/messages", icon: MessageSquare, label: 'বার্তা' },
+    { href: "/search", icon: Search, label: 'অনুসন্ধান' },
+    { href: "/notifications", icon: Bell, label: 'বিজ্ঞপ্তি' },
+    { href: loading || !user ? "/login" : `/profile/${user.uid}`, icon: User, label: 'প্রোফাইল' },
   ];
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-background border-t border-border z-50">
       <nav className="flex justify-around items-center h-full">
-        {navItems.map(({ href, icon: Icon, isCentral }) => (
+        {navItems.map(({ href, icon: Icon, label }) => (
           <Link
             key={href}
             href={href}
             className={cn(
               "flex flex-col items-center justify-center w-full h-full text-muted-foreground transition-colors",
-              pathname === href ? "text-primary font-bold" : "",
-              isCentral && "-mt-6"
+              pathname === href ? "text-primary font-bold" : ""
             )}
+            aria-label={label}
           >
-            {isCentral ? (
-                 <div className="bg-primary text-primary-foreground rounded-full p-3">
-                    <Icon className="h-6 w-6" />
-                 </div>
-            ) : (
-                <Icon className="h-6 w-6" />
-            )}
-            
+            <Icon className="h-6 w-6" />
           </Link>
         ))}
       </nav>

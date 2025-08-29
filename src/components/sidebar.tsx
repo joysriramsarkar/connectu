@@ -8,7 +8,7 @@ import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Home, MessageSquare, User, Bell, PlusSquare, Rss, LogOut, Loader2 } from "lucide-react";
+import { Home, MessageSquare, User, Bell, PlusSquare, Rss, LogOut, Loader2, Search } from "lucide-react";
 import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 
@@ -18,9 +18,10 @@ const MainNav = ({ userId, loading }: { userId: string | null, loading: boolean 
   
   const navItems = [
     { href: "/", label: "হোম", icon: Home },
+    { href: "/search", label: "অনুসন্ধান", icon: Search },
     { href: "/messages", label: "বার্তা", icon: MessageSquare },
-    { href: loading ? "#" : (userId ? `/profile/${userId}` : "/login"), label: "প্রোফাইল", icon: User },
     { href: "/notifications", label: "বিজ্ঞপ্তি", icon: Bell },
+    { href: loading ? "#" : (userId ? `/profile/${userId}` : "/login"), label: "প্রোফাইল", icon: User },
   ];
 
   return (
@@ -78,50 +79,48 @@ export function Sidebar() {
 
 
   return (
-    <aside className="sticky top-0 h-screen md:w-20 xl:w-64 flex flex-col justify-between p-4 border-r border-border hidden md:flex">
-      <div>
+    <aside className="sticky top-0 h-screen md:w-20 xl:w-64 flex-col justify-between p-4 border-r border-border hidden md:flex">
+      <div className="flex flex-col h-full">
         <Link href="/" className="mb-4 flex items-center gap-2 justify-center xl:justify-start">
             <Rss className="h-8 w-8 text-primary" />
             <h1 className="text-2xl font-bold hidden xl:inline">ConnectU</h1>
         </Link>
         <MainNav userId={user?.uid || null} loading={loading} />
         <div className="mt-4">
-            <div className="hidden xl:block">
-                <Button className="w-full rounded-full py-6 text-lg">
-                    পোস্ট করুন
-                </Button>
-            </div>
+            <Button className="w-full rounded-full py-6 text-lg hidden xl:flex items-center justify-center">
+                পোস্ট করুন
+            </Button>
             <div className="xl:hidden">
                 <Button size="icon" className="w-12 h-12 rounded-full">
                     <PlusSquare />
                 </Button>
             </div>
         </div>
-      </div>
-
-      <div className="flex flex-col gap-4">
-        {loading ? (
-            <div className="flex items-center justify-center py-2">
-                <Loader2 className="h-6 w-6 animate-spin" />
-            </div>
-        ) : user ? (
-            <>
-                <Button variant="ghost" onClick={handleLogout} className="flex items-center gap-3 justify-center xl:justify-start rounded-full px-4 py-2 text-lg">
-                    <LogOut className="h-6 w-6" />
-                    <span className="hidden xl:inline">লগ আউট</span>
-                </Button>
-                <Link href={`/profile/${user.uid}`} className="flex items-center gap-3 justify-center xl:justify-start">
-                  <Avatar>
-                  <AvatarImage src={user.photoURL || "https://picsum.photos/seed/user-placeholder/200"} alt={user.displayName || "User"} />
-                  <AvatarFallback>{user.displayName?.substring(0, 2) || 'U'}</AvatarFallback>
-                  </Avatar>
-                  <div className="hidden xl:inline">
-                      <p className="font-bold truncate">{user.displayName || "User"}</p>
-                      <p className="text-sm text-muted-foreground truncate">{user.email}</p>
-                  </div>
-                </Link>
-            </>
-        ): null}
+        <div className="flex-grow"></div>
+        <div className="flex flex-col gap-4">
+            {loading ? (
+                <div className="flex items-center justify-center py-2">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+            ) : user ? (
+                <>
+                    <Button variant="ghost" onClick={handleLogout} className="flex items-center gap-3 justify-center xl:justify-start rounded-full px-4 py-2 text-lg">
+                        <LogOut className="h-6 w-6" />
+                        <span className="hidden xl:inline">লগ আউট</span>
+                    </Button>
+                    <Link href={`/profile/${user.uid}`} className="flex items-center gap-3 justify-center xl:justify-start">
+                      <Avatar>
+                      <AvatarImage src={user.photoURL || "https://picsum.photos/seed/user-placeholder/200"} alt={user.displayName || "User"} />
+                      <AvatarFallback>{user.displayName?.substring(0, 2) || 'U'}</AvatarFallback>
+                      </Avatar>
+                      <div className="hidden xl:inline">
+                          <p className="font-bold truncate">{user.displayName || "User"}</p>
+                          <p className="text-sm text-muted-foreground truncate">{user.email}</p>
+                      </div>
+                    </Link>
+                </>
+            ): null}
+        </div>
       </div>
     </aside>
   );
