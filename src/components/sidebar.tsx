@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { CreatePost } from "./create-post";
 import { User as AppUser } from "@/lib/data";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, onSnapshot } from "firebase/firestore";
 
 async function getUserProfile(userId: string): Promise<AppUser | null> {
   if (!userId) return null;
@@ -26,31 +26,39 @@ async function getUserProfile(userId: string): Promise<AppUser | null> {
   return null;
 }
 
-const MainNav = ({ userId, loading }: { userId: string | null, loading: boolean }) => {
+const MainNav = ({ userId, loading, notificationCount }: { userId: string | null, loading: boolean, notificationCount: number }) => {
   const pathname = usePathname();
   
   const navItems = [
     { href: "/", label: "হোম", icon: Home },
     { href: "/search", label: "অনুসন্ধান", icon: Search },
     { href: "/messages", label: "বার্তা", icon: MessageSquare },
-    { href: "/notifications", label: "বিজ্ঞপ্তি", icon: Bell },
+    { href: "/notifications", label: "বিজ্ঞপ্তি", icon: Bell, count: notificationCount },
     { href: loading ? "#" : (userId ? `/profile/${userId}` : "/login"), label: "প্রোফাইল", icon: User },
   ];
 
   return (
     <nav className="flex flex-col items-start gap-2">
-      {navItems.map(({ href, label, icon: Icon }) => (
+      {navItems.map(({ href, label, icon: Icon, count }) => (
         <Link
           key={label}
           href={href}
           className={cn(
-            "flex items-center gap-3 rounded-full px-4 py-2 text-lg transition-colors hover:bg-accent/50 w-full",
+            "flex items-center gap-3 rounded-full px-4 py-2 text-lg transition-colors hover:bg-accent/50 w-full relative",
             pathname === href && !loading ? "font-bold" : "font-normal",
             loading && label === "প্রোফাইল" && "cursor-not-allowed opacity-50"
           )}
         >
           <Icon className="h-6 w-6" />
           <span className="hidden xl:inline">{label}</span>
+          {count && count > 0 && (
+             <span className="absolute left-8 top-1 hidden xl:inline h-5 w-5 text-xs bg-red-500 text-white rounded-full items-center justify-center">
+                {count > 9 ? '9+' : count}
+             </span>
+          )}
+           {count && count > 0 && (
+             <span className="absolute left-2 top-1 xl:hidden h-2 w-2 bg-red-500 rounded-full"></span>
+          )}
         </Link>
       ))}
     </nav>
@@ -64,6 +72,8 @@ export function Sidebar() {
   const [appUser, setAppUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(0);
+
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -78,6 +88,19 @@ export function Sidebar() {
     });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!firebaseUser) return;
+    const q = query(
+        collection(db, "notifications"),
+        where("recipientId", "==", firebaseUser.uid),
+        where("read", "==", false)
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        setNotificationCount(snapshot.size);
+    });
+    return () => unsubscribe();
+  }, [firebaseUser]);
 
 
   const handleLogout = async () => {
@@ -106,17 +129,15 @@ export function Sidebar() {
             <Rss className="h-8 w-8 text-primary" />
             <h1 className="text-2xl font-bold hidden xl:inline">ConnectU</h1>
         </Link>
-        <MainNav userId={firebaseUser?.uid || null} loading={loading} />
+        <MainNav userId={firebaseUser?.uid || null} loading={loading} notificationCount={notificationCount} />
         
         {appUser && (
             <Dialog open={isPostDialogOpen} onOpenChange={setIsPostDialogOpen}>
               <DialogTrigger asChild>
-                <div className="mt-4">
-                  <div className="hidden xl:block">
-                     <Button className="w-full rounded-full py-6 text-lg">
+                 <div className="mt-4">
+                    <Button className="w-full rounded-full py-6 text-lg hidden xl:block">
                         পোস্ট করুন
                     </Button>
-                  </div>
                    <div className="xl:hidden">
                         <Button size="icon" className="w-12 h-12 rounded-full">
                             <PlusSquare />
