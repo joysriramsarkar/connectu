@@ -162,7 +162,7 @@ export default function EditProfilePage() {
                         <div className="mt-2 aspect-[3/1] relative w-full rounded-lg overflow-hidden bg-muted">
                             {coverPreview && <Image src={coverPreview} alt="কভার ফটো প্রিভিউ" fill className="object-cover" />}
                         </div>
-                        <Input id="coverPhoto" type="file" onChange={handleCoverChange} className="mt-2" accept="image/*" />
+                        <Input id="coverPhoto" type="file" onChange={handleCoverChange} className="mt-2" accept="image/*" disabled={isSubmitting}/>
                     </div>
 
                      <div>
@@ -172,7 +172,7 @@ export default function EditProfilePage() {
                                 {avatarPreview && <AvatarImage src={avatarPreview} alt={userProfile.name} />}
                                 <AvatarFallback>{userProfile.name.substring(0, 2)}</AvatarFallback>
                             </Avatar>
-                             <Input id="avatar" type="file" onChange={handleAvatarChange} className="max-w-xs" accept="image/*" />
+                             <Input id="avatar" type="file" onChange={handleAvatarChange} className="max-w-xs" accept="image/*" disabled={isSubmitting}/>
                         </div>
                     </div>
                     

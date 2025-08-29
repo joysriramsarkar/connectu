@@ -20,7 +20,7 @@ const MainNav = ({ userId, loading }: { userId: string | null, loading: boolean 
     { href: "/", label: "হোম", icon: Home },
     { href: "/messages", label: "বার্তা", icon: MessageSquare },
     { href: loading ? "#" : (userId ? `/profile/${userId}` : "/login"), label: "প্রোফাইল", icon: User },
-    { href: "#", label: "বিজ্ঞপ্তি", icon: Bell },
+    { href: "/notifications", label: "বিজ্ঞপ্তি", icon: Bell },
   ];
 
   return (
