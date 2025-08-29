@@ -33,13 +33,13 @@ const MainNav = ({ userId, loading, notificationCount }: { userId: string | null
     { href: "/", label: "হোম", icon: Home },
     { href: "/search", label: "অনুসন্ধান", icon: Search },
     { href: "/messages", label: "বার্তা", icon: MessageSquare },
-    { href: "/notifications", label: "বিজ্ঞপ্তি", icon: Bell, count: notificationCount },
+    { href: "/notifications", label: "বিজ্ঞপ্তি", icon: Bell },
     { href: loading ? "#" : (userId ? `/profile/${userId}` : "/login"), label: "প্রোফাইল", icon: User },
   ];
 
   return (
     <nav className="flex flex-col items-start gap-2">
-      {navItems.map(({ href, label, icon: Icon, count }) => (
+      {navItems.map(({ href, label, icon: Icon }) => (
         <Link
           key={label}
           href={href}
@@ -51,10 +51,10 @@ const MainNav = ({ userId, loading, notificationCount }: { userId: string | null
         >
           <Icon className="h-6 w-6" />
           <span className="hidden xl:inline">{label}</span>
-          {count && count > 0 && (
+          {label === 'বিজ্ঞপ্তি' && notificationCount > 0 && (
             <>
               <span className="absolute left-8 top-1 hidden xl:flex h-5 w-5 text-xs bg-red-500 text-white rounded-full items-center justify-center">
-                  {count > 9 ? '9+' : count}
+                  {(notificationCount > 9 ? '৯+' : notificationCount.toLocaleString('bn-BD'))}
               </span>
               <span className="absolute left-2 top-1 xl:hidden h-2 w-2 bg-red-500 rounded-full"></span>
             </>
@@ -130,19 +130,19 @@ export function Sidebar() {
             <h1 className="text-2xl font-bold hidden xl:inline">ConnectU</h1>
         </Link>
         <MainNav userId={firebaseUser?.uid || null} loading={loading} notificationCount={notificationCount} />
-        
+        <div className="flex-grow"></div>
         {appUser && (
             <Dialog open={isPostDialogOpen} onOpenChange={setIsPostDialogOpen}>
               <DialogTrigger asChild>
-                 <div>
-                    <Button className="w-full rounded-full py-6 text-lg hidden xl:flex items-center justify-center">
-                        পোস্ট করুন
+                <div className="mt-4">
+                  <Button className="w-full rounded-full py-6 text-lg hidden xl:flex items-center justify-center">
+                    পোস্ট করুন
+                  </Button>
+                  <div className="xl:hidden">
+                    <Button size="icon" className="w-12 h-12 rounded-full">
+                        <PlusSquare />
                     </Button>
-                   <div className="xl:hidden">
-                        <Button size="icon" className="w-12 h-12 rounded-full">
-                            <PlusSquare />
-                        </Button>
-                    </div>
+                  </div>
                 </div>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[625px]">
@@ -154,8 +154,7 @@ export function Sidebar() {
             </Dialog>
         )}
 
-        <div className="flex-grow"></div>
-        <div className="flex flex-col gap-4">
+        <div className="mt-auto flex flex-col gap-4">
             {loading ? (
                 <div className="flex items-center justify-center py-2">
                     <Loader2 className="h-6 w-6 animate-spin" />

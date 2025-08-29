@@ -41,14 +41,14 @@ export function MobileNav() {
     { href: "/", icon: Home, label: 'হোম' },
     { href: "/messages", icon: MessageSquare, label: 'বার্তা' },
     { href: "/search", icon: Search, label: 'অনুসন্ধান' },
-    { href: "/notifications", icon: Bell, label: 'বিজ্ঞপ্তি', count: notificationCount },
+    { href: "/notifications", icon: Bell, label: 'বিজ্ঞপ্তি' },
     { href: loading || !user ? "/login" : `/profile/${user.uid}`, icon: User, label: 'প্রোফাইল' },
   ];
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-background border-t border-border z-50">
       <nav className="flex justify-around items-center h-full">
-        {navItems.map(({ href, icon: Icon, label, count }) => (
+        {navItems.map(({ href, icon: Icon, label }) => (
           <Link
             key={href}
             href={href}
@@ -59,9 +59,9 @@ export function MobileNav() {
             aria-label={label}
           >
             <Icon className="h-6 w-6" />
-            {count && count > 0 && (
+            {label === 'বিজ্ঞপ্তি' && notificationCount > 0 && (
                  <span className="absolute top-1 right-1/2 translate-x-[20px] h-4 w-4 text-xs bg-red-500 text-white rounded-full flex items-center justify-center">
-                    {count > 9 ? '9+' : count}
+                    {(notificationCount > 9 ? '৯+' : notificationCount.toLocaleString('bn-BD'))}
                  </span>
             )}
           </Link>
