@@ -3,13 +3,13 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { collection, query, where, getDocs, or } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Post, User } from '@/lib/data';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from '@/components/post-card';
-import { Loader2, Search as SearchIcon, User as UserIcon } from 'lucide-react';
+import { Loader2, Search as SearchIcon } from 'lucide-react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { Card, CardContent } from '@/components/ui/card';
@@ -44,35 +44,40 @@ export default function SearchPage() {
             }
             setLoading(true);
 
-            // Search for users
-            const usersQuery = query(collection(db, 'users'), 
-                or(
+            try {
+                // Firestore does not support case-insensitive searches natively.
+                // A common approach is to search for a range.
+                const userSearchTermEnd = searchTerm.toLowerCase() + '\uf8ff';
+                const usersQuery = query(collection(db, 'users'), 
                     where('name', '>=', searchTerm),
-                    where('name', '<=', searchTerm + '\uf8ff'),
-                    where('handle', '>=', searchTerm),
-                    where('handle', '<=', searchTerm + '\uf8ff')
-                )
-            );
-            const usersSnapshot = await getDocs(usersQuery);
-            const usersData = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as User);
-            setUsers(usersData);
+                    where('name', '<=', userSearchTermEnd)
+                );
+                const usersSnapshot = await getDocs(usersQuery);
+                const usersData = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as User);
+                setUsers(usersData);
 
-            // Search for posts (simple content search)
-            const postsQuery = query(collection(db, 'posts'), 
-                where('content', '>=', searchTerm),
-                where('content', '<=', searchTerm + '\uf8ff')
-            );
-            const postsSnapshot = await getDocs(postsQuery);
-            const postsData = await Promise.all(
-                postsSnapshot.docs.map(async (doc) => {
-                    const postData = doc.data();
-                    const author = await getUserProfile(postData.authorId);
-                    return { id: doc.id, ...postData, author } as Post;
-                })
-            );
-            setPosts(postsData.filter(p => p.author));
-            
-            setLoading(false);
+                // Search for posts (simple content search)
+                const postSearchTermEnd = searchTerm + '\uf8ff';
+                const postsQuery = query(collection(db, 'posts'), 
+                    where('content', '>=', searchTerm),
+                    where('content', '<=', postSearchTermEnd)
+                );
+                const postsSnapshot = await getDocs(postsQuery);
+                const postsData = await Promise.all(
+                    postsSnapshot.docs.map(async (doc) => {
+                        const postData = doc.data();
+                        const author = await getUserProfile(postData.authorId);
+                        return { id: doc.id, ...postData, author } as Post;
+                    })
+                );
+                setPosts(postsData.filter(p => p.author));
+            } catch(error) {
+                console.error("Error during search: ", error);
+                setPosts([]);
+                setUsers([]);
+            } finally {
+                setLoading(false);
+            }
         };
 
         const timeoutId = setTimeout(() => {
