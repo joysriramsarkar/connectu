@@ -1,10 +1,10 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createUserWithEmailAndPassword, signInWithPopup, signInAnonymously } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithPopup, signInAnonymously, onAuthStateChanged } from "firebase/auth";
 import { auth, googleProvider } from '@/lib/firebase';
 import { Button } from "@/components/ui/button";
 import {
@@ -42,6 +42,19 @@ export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        toast({
+            title: "সফল!",
+            description: "আপনার অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে।",
+        });
+        router.push('/');
+      }
+    });
+    return () => unsubscribe();
+  }, [router, toast]);
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
@@ -55,11 +68,7 @@ export default function SignupPage() {
     setLoading(true);
     try {
       await createUserWithEmailAndPassword(auth, email, password);
-      toast({
-        title: "সফল!",
-        description: "আপনার অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে।",
-      });
-      router.push('/');
+      // The onAuthStateChanged listener will handle the redirect.
     } catch (error: any) {
       console.error(error);
       toast({
@@ -76,11 +85,7 @@ export default function SignupPage() {
     setGoogleLoading(true);
     try {
         await signInWithPopup(auth, googleProvider);
-        toast({
-            title: "সফল!",
-            description: "আপনি Google দিয়ে সফলভাবে সাইন আপ করেছেন।",
-        });
-        router.push('/');
+        // The onAuthStateChanged listener will handle the redirect.
     } catch (error: any) {
         console.error(error);
         let description = "Google দিয়ে সাইন আপ করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।";
@@ -101,11 +106,7 @@ export default function SignupPage() {
     setAnonymousLoading(true);
     try {
         await signInAnonymously(auth);
-        toast({
-            title: "সফল!",
-            description: "আপনি বেনামে সফলভাবে লগ ইন করেছেন।",
-        });
-        router.push('/');
+        // The onAuthStateChanged listener will handle the redirect.
     } catch (error: any) {
         console.error(error);
         toast({
