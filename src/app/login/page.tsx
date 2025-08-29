@@ -35,29 +35,29 @@ export default function LoginPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const handleRedirectResult = async () => {
-      try {
-        const result = await getRedirectResult(auth);
-        if (result) {
-          toast({
-              title: "সফল!",
-              description: "আপনি Google দিয়ে সফলভাবে লগ ইন করেছেন।",
-          });
-          router.push('/');
-        } else {
+    const checkRedirect = async () => {
+        try {
+            const result = await getRedirectResult(auth);
+            if (result) {
+                toast({
+                    title: "সফল!",
+                    description: "আপনি Google দিয়ে সফলভাবে লগ ইন করেছেন।",
+                });
+                router.push('/');
+            } else {
+                setCheckingRedirect(false);
+            }
+        } catch (error: any) {
+            console.error("Google sign-in error after redirect:", error);
+            toast({
+                variant: "destructive",
+                title: "ত্রুটি",
+                description: error.message || "Google দিয়ে লগইন করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
+            });
             setCheckingRedirect(false);
         }
-      } catch (error: any) {
-        console.error("Google sign-in error after redirect:", error);
-        toast({
-            variant: "destructive",
-            title: "ত্রুটি",
-            description: error.message || "Google দিয়ে লগইন করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
-        });
-        setCheckingRedirect(false);
-      }
     };
-    handleRedirectResult();
+    checkRedirect();
   }, [router, toast]);
 
 
@@ -205,3 +205,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    

@@ -44,7 +44,7 @@ export default function SignupPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const handleRedirectResult = async () => {
+    const checkRedirect = async () => {
       try {
         const result = await getRedirectResult(auth);
         if (result) {
@@ -66,7 +66,7 @@ export default function SignupPage() {
         setCheckingRedirect(false);
       }
     };
-    handleRedirectResult();
+    checkRedirect();
   }, [router, toast]);
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -227,3 +227,5 @@ export default function SignupPage() {
     </div>
   );
 }
+
+    
