@@ -43,6 +43,7 @@ async function createUserProfile(firebaseUser: FirebaseUser): Promise<AppUser> {
 
 export default function Home() {
   const [user, setUser] = useState<AppUser | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [suggestedUsers, setSuggestedUsers] = useState<AppUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,17 +78,18 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
+    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      if (fbUser) {
+        setFirebaseUser(fbUser);
         setLoading(true);
-        let userProfile = await getUserProfile(firebaseUser.uid);
+        let userProfile = await getUserProfile(fbUser.uid);
         if (!userProfile) {
-            userProfile = await createUserProfile(firebaseUser);
+            userProfile = await createUserProfile(fbUser);
         }
         setUser(userProfile);
         setLoading(false);
         fetchPosts();
-        fetchSuggestedUsers(firebaseUser.uid);
+        fetchSuggestedUsers(fbUser.uid);
       } else {
         router.push('/login');
       }
@@ -116,12 +118,12 @@ export default function Home() {
         <div className="space-y-4">
           {postsLoading ? (
             <div className="space-y-4">
-              <PostCard post={{id: '1', authorId: '1'} as Post} />
-              <PostCard post={{id: '2', authorId: '2'} as Post} />
+              <PostCard post={{id: '1', authorId: '1'} as Post} user={firebaseUser}/>
+              <PostCard post={{id: '2', authorId: '2'} as Post} user={firebaseUser}/>
             </div>
           ) : posts.length > 0 ? (
              posts.map((post) => (
-                <PostCard key={post.id} post={post} />
+                <PostCard key={post.id} post={post} user={firebaseUser} />
               ))
           ) : (
              <Card>

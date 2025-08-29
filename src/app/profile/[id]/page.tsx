@@ -2,9 +2,9 @@
 "use client";
 
 import { useEffect, useState, useCallback } from 'react';
-import { notFound, useParams, useRouter } from "next/navigation";
+import { notFound, useParams } from "next/navigation";
 import Image from "next/image";
-import { doc, getDoc, collection, query, where, getDocs, orderBy, writeBatch, increment, onSnapshot, DocumentData, deleteDoc, setDoc, getDocsFromCache } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, getDocs, orderBy, writeBatch, increment, onSnapshot, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Post, User } from "@/lib/data";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,6 +15,7 @@ import { PostCard } from "@/components/post-card";
 import { User as UserIcon, Loader2, MessageSquare } from "lucide-react";
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { useRouter } from 'next/navigation';
 
 
 export default function ProfilePage() {
@@ -214,7 +215,7 @@ export default function ProfilePage() {
                     <Loader2 className="h-8 w-8 animate-spin" />
                 </div>
              ) : posts.length > 0 ? (
-                posts.map(post => <PostCard key={post.id} post={post} />)
+                posts.map(post => <PostCard key={post.id} post={post} user={currentUser}/>)
              ) : (
                 <div className="text-center py-16 text-muted-foreground">
                     <p>এখনও কোনো পোস্ট নেই</p>
@@ -236,3 +237,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+    

@@ -46,11 +46,6 @@ export default function SignupPage() {
 
   useEffect(() => {
     setIsMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!isMounted) return;
-
     const checkRedirect = async () => {
       try {
         const result = await getRedirectResult(auth);
@@ -60,8 +55,6 @@ export default function SignupPage() {
               description: "আপনি Google দিয়ে সফলভাবে সাইন আপ করেছেন।",
           });
           router.push('/');
-        } else {
-            setCheckingRedirect(false);
         }
       } catch (error: any) {
         console.error("Google sign-in error after redirect:", error);
@@ -70,11 +63,12 @@ export default function SignupPage() {
             title: "ত্রুটি",
             description: error.message || "Google দিয়ে সাইন আপ করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
         });
+      } finally {
         setCheckingRedirect(false);
       }
     };
     checkRedirect();
-  }, [isMounted, router, toast]);
+  }, [router, toast]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,7 +102,6 @@ export default function SignupPage() {
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
-    setCheckingRedirect(true);
     try {
         await signInWithRedirect(auth, googleProvider);
     } catch (error: any) {
@@ -119,7 +112,6 @@ export default function SignupPage() {
             description: error.message || "Google দিয়ে সাইন আপ করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
         });
         setGoogleLoading(false);
-        setCheckingRedirect(false);
     }
   };
 
@@ -236,3 +228,5 @@ export default function SignupPage() {
     </div>
   );
 }
+
+    

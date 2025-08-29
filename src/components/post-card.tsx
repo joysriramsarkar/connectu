@@ -13,17 +13,17 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { bn } from 'date-fns/locale';
 import { auth, db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, deleteDoc, increment, writeBatch, onSnapshot } from 'firebase/firestore';
-import { useAuthState } from 'react-firebase-hooks/auth';
+import { doc, setDoc, deleteDoc, increment, writeBatch, onSnapshot } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { CommentSheet } from './comment-sheet';
+import { User as FirebaseUser } from 'firebase/auth';
 
 interface PostCardProps {
   post: Post;
+  user: FirebaseUser | null | undefined;
 }
 
-export function PostCard({ post }: PostCardProps) {
-  const [user] = useAuthState(auth);
+export function PostCard({ post, user }: PostCardProps) {
   const { toast } = useToast();
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likes || 0);
@@ -163,3 +163,5 @@ export function PostCard({ post }: PostCardProps) {
     </>
   );
 }
+
+    
