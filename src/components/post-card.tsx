@@ -8,7 +8,7 @@ import type { Post } from '@/lib/data';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Heart, MessageCircle, Send, Link as LinkIcon } from 'lucide-react';
+import { Heart, MessageCircle, Send, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { bn } from 'date-fns/locale';
@@ -17,6 +17,18 @@ import { doc, setDoc, deleteDoc, increment, writeBatch, onSnapshot, collection, 
 import { useToast } from "@/hooks/use-toast";
 import { CommentSheet } from './comment-sheet';
 import { User as FirebaseUser } from 'firebase/auth';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+
+const FacebookIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+);
+const TwitterIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M22 4s-.7 2.1-2 3.4c1.6 1.4 3.3 4.4 3.3 4.4s-1.4 1.4-2.8 1.4c-1.4 0-2.8-1.4-2.8-1.4s-1.4 2.8-4.2 2.8c-2.8 0-4.2-2.8-4.2-2.8s-1.4 1.4-2.8 1.4c-1.4 0-2.8-1.4-2.8-1.4s1.7-3 3.3-4.4c-1.3-1.3-2-3.4-2-3.4s1.4-1.4 2.8-1.4c1.4 0 2.8 1.4 2.8 1.4s1.4-2.8 4.2-2.8c2.8 0 4.2 2.8 4.2 2.8z"></path></svg>
+);
+const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+);
+
 
 interface PostCardProps {
   post: Post;
@@ -100,13 +112,31 @@ export function PostCard({ post, user }: PostCardProps) {
     }
   };
   
-  const handleShare = () => {
+  const handleShare = (platform: 'facebook' | 'twitter' | 'whatsapp' | 'copy') => {
     const postUrl = `${window.location.origin}/post/${post.id}`;
-    navigator.clipboard.writeText(postUrl);
-    toast({
-      title: "লিঙ্ক কপি হয়েছে",
-      description: "পোস্টের লিঙ্ক আপনার ক্লিপবোর্ডে কপি করা হয়েছে।",
-    });
+    const text = encodeURIComponent(`"${post.content}" - ${post.author.name}`);
+    let shareUrl = '';
+
+    switch(platform) {
+      case 'facebook':
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(postUrl)}`;
+        break;
+      case 'twitter':
+        shareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(postUrl)}&text=${text}`;
+        break;
+      case 'whatsapp':
+        shareUrl = `https://api.whatsapp.com/send?text=${text}%20${encodeURIComponent(postUrl)}`;
+        break;
+      case 'copy':
+        navigator.clipboard.writeText(postUrl);
+        toast({
+          title: "লিঙ্ক কপি হয়েছে",
+          description: "পোস্টের লিঙ্ক আপনার ক্লিপবোর্ডে কপি করা হয়েছে।",
+        });
+        return;
+    }
+    
+    window.open(shareUrl, '_blank', 'noopener,noreferrer');
   };
 
   const formattedDate = post.createdAt?.toDate ? formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true, locale: bn }) : 'কিছুক্ষণ আগে';
@@ -167,9 +197,31 @@ export function PostCard({ post, user }: PostCardProps) {
             <MessageCircle className="h-5 w-5" />
             <span>{(commentCount || 0).toLocaleString('bn-BD')}</span>
           </Button>
-          <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={handleShare}>
-            <Send className="h-5 w-5" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                    <Send className="h-5 w-5" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => handleShare('facebook')}>
+                    <FacebookIcon className="mr-2 h-4 w-4" />
+                    <span>ফেসবুকে শেয়ার করুন</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleShare('twitter')}>
+                    <TwitterIcon className="mr-2 h-4 w-4" />
+                    <span>টুইটারে শেয়ার করুন</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleShare('whatsapp')}>
+                    <WhatsAppIcon className="mr-2 h-4 w-4" />
+                    <span>হোয়াটসঅ্যাপে শেয়ার করুন</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleShare('copy')}>
+                    <Copy className="mr-2 h-4 w-4" />
+                    <span>লিঙ্ক কপি করুন</span>
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </CardFooter>
     </Card>
