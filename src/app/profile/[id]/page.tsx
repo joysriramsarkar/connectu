@@ -34,8 +34,7 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
-  const { id: userId } = params;
-
+  
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
         setCurrentUser(user);
@@ -44,6 +43,7 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
   }, []);
   
   useEffect(() => {
+    const userId = params.id;
     if (!userId) return;
     setLoading(true);
     const unsub = onSnapshot(doc(db, "users", userId), (doc) => {
@@ -55,11 +55,12 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
         setLoading(false);
     });
     return () => unsub();
-  }, [userId]);
+  }, [params.id]);
 
 
   const fetchPosts = useCallback(async () => {
-    if(!user) return;
+    const userId = params.id;
+    if(!user || !userId) return;
     setPostsLoading(true);
     const postsQuery = query(
       collection(db, "posts"), 
@@ -76,7 +77,7 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
     );
     setPosts(postsData);
     setPostsLoading(false);
-  }, [userId, user]);
+  }, [params.id, user]);
 
   useEffect(() => {
     if(user) {
