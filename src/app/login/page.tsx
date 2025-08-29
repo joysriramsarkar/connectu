@@ -4,7 +4,8 @@
 import { useState, useEffect } from 'react';
 import Link from "next/link";
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword, signInWithPopup, signInAnonymously, onAuthStateChanged, RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult, FirebaseError } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup, signInAnonymously, onAuthStateChanged, RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
+import { FirebaseError } from 'firebase/app';
 import { auth, googleProvider } from '@/lib/firebase';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -58,7 +59,7 @@ export default function LoginPage() {
   }, [router, toast]);
   
   const setupRecaptcha = () => {
-    if (!isClient) return null;
+    if (!isClient || !auth) return null;
     if (!window.recaptchaVerifier) {
         window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
             'size': 'invisible',
