@@ -22,7 +22,7 @@ import { Loader2, Rss, User as UserIcon } from 'lucide-react';
 
 // A simple SVG for the Google icon
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0_0_24_24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
         <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-1.5c-.83 0-1.5.67-1.5 1.5V12h3l-.5 3h-2.5v6.8c4.56-.93 8-4.96 8-9.8z"/>
         <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" fill="#4285F4"/>
         <path d="M12 22c-3.038 0-5.788-1.46-7.584-3.725l2.4-1.802A3.998 3.998 0 0112 18c2.206 0 4-1.794 4-4s-1.794-4-4-4c-1.103 0-2.096.447-2.828 1.172L12 14h6a8 8 0 00-8-8c-2.42 0-4.605.975-6.22 2.572l-2.4-1.802A9.998 9.998 0 0112 2c5.523 0 10 4.477 10 10s-4.477 10-10 10z" fill="#34A853"/>
@@ -39,6 +39,7 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [anonymousLoading, setAnonymousLoading] = useState(false);
+  const [checkingRedirect, setCheckingRedirect] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -47,12 +48,12 @@ export default function SignupPage() {
       try {
         const result = await getRedirectResult(auth);
         if (result) {
-          setGoogleLoading(true);
           toast({
               title: "সফল!",
               description: "আপনি Google দিয়ে সফলভাবে সাইন আপ করেছেন।",
           });
           router.push('/');
+          return;
         }
       } catch (error: any) {
         console.error("Google sign-in error after redirect:", error);
@@ -61,8 +62,8 @@ export default function SignupPage() {
             title: "ত্রুটি",
             description: error.message || "Google দিয়ে সাইন আপ করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
         });
-        setGoogleLoading(false);
       }
+      setCheckingRedirect(false);
     };
     handleRedirectResult();
   }, [router, toast]);
@@ -132,6 +133,14 @@ export default function SignupPage() {
         setAnonymousLoading(false);
     }
   };
+  
+  if (checkingRedirect) {
+    return (
+        <div className="flex items-center justify-center min-h-screen bg-background">
+            <Loader2 className="h-16 w-16 animate-spin text-primary" />
+        </div>
+    );
+  }
 
   const isAnyLoading = loading || googleLoading || anonymousLoading;
 
@@ -183,8 +192,8 @@ export default function SignupPage() {
                 />
               </div>
               <Button type="submit" className="w-full" disabled={isAnyLoading}>
-                 {loading || (googleLoading && "অ্যাকাউন্ট তৈরি করা হচ্ছে...")}
-                 {!loading && !googleLoading && "অ্যাকাউন্ট তৈরি করুন"}
+                 {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                 {loading ? "অ্যাকাউন্ট তৈরি করা হচ্ছে..." : "অ্যাকাউন্ট তৈরি করুন"}
               </Button>
             </form>
              <div className="relative">
@@ -217,3 +226,4 @@ export default function SignupPage() {
     </div>
   );
 }
+

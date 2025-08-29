@@ -24,13 +24,13 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     </svg>
 );
 
-
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [anonymousLoading, setAnonymousLoading] = useState(false);
+  const [checkingRedirect, setCheckingRedirect] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -39,12 +39,13 @@ export default function LoginPage() {
       try {
         const result = await getRedirectResult(auth);
         if (result) {
-          setGoogleLoading(true);
+          // No need to set googleLoading here, the page will redirect.
           toast({
               title: "সফল!",
               description: "আপনি Google দিয়ে সফলভাবে লগ ইন করেছেন।",
           });
           router.push('/');
+          return; // Stop further execution
         }
       } catch (error: any) {
         console.error("Google sign-in error after redirect:", error);
@@ -53,8 +54,8 @@ export default function LoginPage() {
             title: "ত্রুটি",
             description: error.message || "Google দিয়ে লগইন করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
         });
-        setGoogleLoading(false);
       }
+      setCheckingRedirect(false);
     };
     handleRedirectResult();
   }, [router, toast]);
@@ -117,6 +118,14 @@ export default function LoginPage() {
         setAnonymousLoading(false);
     }
   };
+  
+  if (checkingRedirect) {
+    return (
+        <div className="flex items-center justify-center min-h-screen bg-background">
+            <Loader2 className="h-16 w-16 animate-spin text-primary" />
+        </div>
+    );
+  }
 
   const isAnyLoading = loading || googleLoading || anonymousLoading;
 
@@ -162,8 +171,8 @@ export default function LoginPage() {
                 />
               </div>
               <Button type="submit" className="w-full" disabled={isAnyLoading}>
-                {loading || (googleLoading && "লগ ইন করা হচ্ছে...")}
-                {!loading && !googleLoading && "লগ ইন"}
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {loading ? "লগ ইন করা হচ্ছে..." : "লগ ইন"}
               </Button>
             </form>
              <div className="relative">
@@ -196,3 +205,4 @@ export default function LoginPage() {
     </div>
   );
 }
+
