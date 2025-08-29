@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react";
@@ -7,11 +8,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Send, ArrowLeft } from "lucide-react";
+import { Search, Send, ArrowLeft, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function MessagesPage() {
-  const [selectedConversation, setSelectedConversation] = useState(mockConversations[0]);
+  const [selectedConversation, setSelectedConversation] = useState<typeof mockConversations[0] | null>(null);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 h-screen max-h-screen">
@@ -86,7 +87,7 @@ export default function MessagesPage() {
             </div>
           </>
         ) : (
-           <div className="flex flex-col items-center justify-center h-full text-center">
+           <div className="flex-col items-center justify-center h-full text-center hidden md:flex">
              <MessageSquare className="w-24 h-24 text-muted-foreground/50"/>
              <h2 className="text-2xl font-bold mt-4">আপনার বার্তা</h2>
              <p className="text-muted-foreground">একটি কথোপকথন নির্বাচন করে কথা বলা শুরু করুন।</p>

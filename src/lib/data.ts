@@ -4,7 +4,6 @@ export type User = {
   name: string;
   handle: string;
   avatar: string;
-  'data-ai-hint'?: string;
   coverPhoto: string;
   bio: string;
   followers: number;
@@ -16,7 +15,6 @@ export type Post = {
   author: User;
   content: string;
   image?: string;
-  'data-ai-hint'?: string;
   likes: number;
   comments: number;
   createdAt: string;
@@ -43,7 +41,6 @@ export const mockUsers: User[] = [
     name: 'আকাশ আহমেদ',
     handle: 'akash_ahmed',
     avatar: 'https://picsum.photos/seed/user1/200',
-    'data-ai-hint': 'man portrait',
     coverPhoto: 'https://picsum.photos/seed/cover1/1200/400',
     bio: 'প্রযুক্তি এবং ভ্রমণ ভালোবাসি। নতুন কিছু শিখতে এবং শেখাতে পছন্দ করি।',
     followers: 1250,
@@ -54,7 +51,6 @@ export const mockUsers: User[] = [
     name: 'জান্নাতুল ফেরদৌস',
     handle: 'jannatul_f',
     avatar: 'https://picsum.photos/seed/user2/200',
-    'data-ai-hint': 'woman portrait',
     coverPhoto: 'https://picsum.photos/seed/cover2/1200/400',
     bio: 'একজন শিল্পী এবং বইপ্রেমী। রঙ এবং শব্দ দিয়ে জগৎ আঁকি।',
     followers: 2800,
@@ -65,7 +61,6 @@ export const mockUsers: User[] = [
     name: 'সোহান চৌধুরী',
     handle: 'sohan_chy',
     avatar: 'https://picsum.photos/seed/user3/200',
-    'data-ai-hint': 'smiling man',
     coverPhoto: 'https://picsum.photos/seed/cover3/1200/400',
     bio: 'উদ্যোক্তা। স্টার্টআপ এবং ইনোভেশন নিয়ে কাজ করি।',
     followers: 5300,
@@ -76,7 +71,6 @@ export const mockUsers: User[] = [
     name: 'ফারিয়া ইসলাম',
     handle: 'faria_islam',
     avatar: 'https://picsum.photos/seed/user4/200',
-    'data-ai-hint': 'woman nature',
     coverPhoto: 'https://picsum.photos/seed/cover4/1200/400',
     bio: 'বিশ্ব ভ্রমণকারী এবং ফটোগ্রাফার। ক্যামেরার চোখে পৃথিবী দেখি।',
     followers: 10200,
@@ -87,7 +81,6 @@ export const mockUsers: User[] = [
     name: 'রায়হান কবির',
     handle: 'rayhan_kabir',
     avatar: 'https://picsum.photos/seed/user5/200',
-    'data-ai-hint': 'man thinking',
     coverPhoto: 'https://picsum.photos/seed/cover5/1200/400',
     bio: 'ডেভেলপার এবং ওপেন সোর্স উত্সাহী। কোড দিয়ে সমস্যার সমাধান করি।',
     followers: 850,
@@ -99,9 +92,8 @@ export const mockPosts: Post[] = [
   {
     id: 'post-1',
     author: mockUsers[1],
-    content: 'আজকের सूर्यास्त অসাধারণ ছিল! প্রকৃতির সৌন্দর্য সত্যিই মন মুগ্ধকর। 🌅 #প্রকৃতি #শান্তি',
+    content: 'আজকের সূর্যাস্ত অসাধারণ ছিল! প্রকৃতির সৌন্দর্য সত্যিই মন মুগ্ধকর। 🌅 #প্রকৃতি #শান্তি',
     image: 'https://picsum.photos/seed/post1/600/400',
-    'data-ai-hint': 'sunset beach',
     likes: 152,
     comments: 12,
     createdAt: '২ ঘন্টা আগে',
@@ -119,7 +111,6 @@ export const mockPosts: Post[] = [
     author: mockUsers[3],
     content: 'পাহাড়ের চূড়া থেকে তোলা একটি ছবি। এই দৃশ্য ভোলার নয়। 🏔️ #ভ্রমণ #পাহাড়',
     image: 'https://picsum.photos/seed/post3/600/800',
-    'data-ai-hint': 'mountain peak',
     likes: 430,
     comments: 45,
     createdAt: '১ দিন আগে',

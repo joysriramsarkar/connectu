@@ -48,7 +48,7 @@ export function PostCard({ post }: PostCardProps) {
         <p className="whitespace-pre-wrap">{post.content}</p>
         {post.image && (
           <div className="relative aspect-video rounded-lg overflow-hidden border">
-            <Image src={post.image} alt="Post image" fill className="object-cover" data-ai-hint={post['data-ai-hint']}/>
+            <Image src={post.image} alt="Post image" fill className="object-cover" />
           </div>
         )}
       </CardContent>

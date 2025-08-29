@@ -1,4 +1,5 @@
 
+
 import { mockUsers, mockPosts } from "@/lib/data";
 import { notFound } from "next/navigation";
 import Image from "next/image";
@@ -21,7 +22,7 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
   return (
     <div>
       <div className="relative h-48 md:h-64 w-full">
-        <Image src={user.coverPhoto} alt={`${user.name} এর কভার ফটো`} fill className="object-cover" data-ai-hint="nature landscape"/>
+        <Image src={user.coverPhoto} alt={`${user.name} এর কভার ফটো`} fill className="object-cover" />
       </div>
       <div className="p-4 md:p-6">
         <div className="flex justify-between items-start">
