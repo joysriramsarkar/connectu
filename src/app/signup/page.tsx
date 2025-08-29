@@ -40,10 +40,17 @@ export default function SignupPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [anonymousLoading, setAnonymousLoading] = useState(false);
   const [checkingRedirect, setCheckingRedirect] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted) return;
+
     const checkRedirect = async () => {
       try {
         const result = await getRedirectResult(auth);
@@ -67,7 +74,7 @@ export default function SignupPage() {
       }
     };
     checkRedirect();
-  }, [router, toast]);
+  }, [isMounted, router, toast]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,6 +108,7 @@ export default function SignupPage() {
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
+    setCheckingRedirect(true);
     try {
         await signInWithRedirect(auth, googleProvider);
     } catch (error: any) {
@@ -111,6 +119,7 @@ export default function SignupPage() {
             description: error.message || "Google দিয়ে সাইন আপ করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
         });
         setGoogleLoading(false);
+        setCheckingRedirect(false);
     }
   };
 
@@ -135,7 +144,7 @@ export default function SignupPage() {
     }
   };
   
-  if (checkingRedirect) {
+  if (!isMounted || checkingRedirect) {
     return (
         <div className="flex items-center justify-center min-h-screen bg-background">
             <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -227,5 +236,3 @@ export default function SignupPage() {
     </div>
   );
 }
-
-    
