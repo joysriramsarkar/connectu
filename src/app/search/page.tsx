@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, or } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Post, User } from '@/lib/data';
 import { Input } from '@/components/ui/input';
@@ -33,6 +33,7 @@ export default function SearchPage() {
     const [posts, setPosts] = useState<Post[]>([]);
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(false);
+    const [hasSearched, setHasSearched] = useState(false);
     const [currentUser] = useAuthState(auth);
 
     useEffect(() => {
@@ -40,27 +41,40 @@ export default function SearchPage() {
             if (!searchTerm.trim()) {
                 setPosts([]);
                 setUsers([]);
+                setHasSearched(false);
                 return;
             }
             setLoading(true);
+            setHasSearched(true);
 
             try {
                 // Firestore does not support case-insensitive searches natively.
                 // A common approach is to search for a range.
-                const userSearchTermEnd = searchTerm.toLowerCase() + '\uf8ff';
+                const searchTermLower = searchTerm.toLowerCase();
+                const searchTermUpper = searchTerm.toUpperCase();
+                
                 const usersQuery = query(collection(db, 'users'), 
-                    where('name', '>=', searchTerm),
-                    where('name', '<=', userSearchTermEnd)
+                    or(
+                        where('name', '>=', searchTerm),
+                        where('name', '<=', searchTerm + '\uf8ff'),
+                        where('handle', '>=', searchTerm),
+                        where('handle', '<=', searchTerm + '\uf8ff')
+                    )
                 );
                 const usersSnapshot = await getDocs(usersQuery);
-                const usersData = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as User);
+                const usersData = usersSnapshot.docs
+                  .map(doc => ({ id: doc.id, ...doc.data() }) as User)
+                  .filter(user => 
+                      user.name.toLowerCase().includes(searchTermLower) || 
+                      user.handle.toLowerCase().includes(searchTermLower)
+                  );
                 setUsers(usersData);
 
+
                 // Search for posts (simple content search)
-                const postSearchTermEnd = searchTerm + '\uf8ff';
                 const postsQuery = query(collection(db, 'posts'), 
                     where('content', '>=', searchTerm),
-                    where('content', '<=', postSearchTermEnd)
+                    where('content', '<=', searchTerm + '\uf8ff')
                 );
                 const postsSnapshot = await getDocs(postsQuery);
                 const postsData = await Promise.all(
@@ -71,6 +85,7 @@ export default function SearchPage() {
                     })
                 );
                 setPosts(postsData.filter(p => p.author));
+
             } catch(error) {
                 console.error("Error during search: ", error);
                 setPosts([]);
@@ -88,6 +103,14 @@ export default function SearchPage() {
 
     }, [searchTerm]);
 
+    const renderWelcomeMessage = () => (
+        <div className="text-center py-16 text-muted-foreground">
+            <SearchIcon className="mx-auto h-12 w-12 mb-4" />
+            <h2 className="text-xl font-semibold">পোস্ট বা ব্যবহারকারী খুঁজুন</h2>
+            <p>আপনার প্রিয় কন্টেন্ট বা বন্ধুদের খুঁজে বের করুন।</p>
+        </div>
+    );
+
     return (
         <div className="p-4 md:p-6">
             <div className="relative mb-6">
@@ -104,6 +127,8 @@ export default function SearchPage() {
                  <div className="flex items-center justify-center h-64">
                     <Loader2 className="h-16 w-16 animate-spin" />
                 </div>
+            ) : !hasSearched ? (
+                renderWelcomeMessage()
             ) : (
                 <Tabs defaultValue="posts" className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
