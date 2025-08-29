@@ -36,10 +36,10 @@ export default function LoginPage() {
 
   useEffect(() => {
     const handleRedirectResult = async () => {
-      setGoogleLoading(true);
       try {
         const result = await getRedirectResult(auth);
         if (result) {
+          setGoogleLoading(true);
           toast({
               title: "সফল!",
               description: "আপনি Google দিয়ে সফলভাবে লগ ইন করেছেন।",
@@ -53,7 +53,6 @@ export default function LoginPage() {
             title: "ত্রুটি",
             description: error.message || "Google দিয়ে লগইন করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
         });
-      } finally {
         setGoogleLoading(false);
       }
     };
