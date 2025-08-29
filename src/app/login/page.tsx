@@ -1,10 +1,10 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from "next/link";
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword, signInWithRedirect, getRedirectResult, signInAnonymously } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup, signInAnonymously } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,37 +30,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [anonymousLoading, setAnonymousLoading] = useState(false);
-  const [checkingRedirect, setCheckingRedirect] = useState(true);
-  const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
-  
-  useEffect(() => {
-    setIsMounted(true);
-    const checkRedirect = async () => {
-        try {
-            const result = await getRedirectResult(auth);
-            if (result) {
-                toast({
-                    title: "সফল!",
-                    description: "আপনি Google দিয়ে সফলভাবে লগ ইন করেছেন।",
-                });
-                router.push('/');
-            }
-        } catch (error: any) {
-            console.error("Google sign-in error after redirect:", error);
-            toast({
-                variant: "destructive",
-                title: "ত্রুটি",
-                description: error.message || "Google দিয়ে লগইন করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
-            });
-        } finally {
-            setCheckingRedirect(false);
-        }
-    };
-    checkRedirect();
-  }, [router, toast]);
-
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,7 +58,12 @@ export default function LoginPage() {
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     try {
-        await signInWithRedirect(auth, googleProvider);
+        await signInWithPopup(auth, googleProvider);
+        toast({
+            title: "সফল!",
+            description: "আপনি Google দিয়ে সফলভাবে লগ ইন করেছেন।",
+        });
+        router.push('/');
     } catch (error: any) {
         console.error(error);
         toast({
@@ -95,6 +71,7 @@ export default function LoginPage() {
             title: "ত্রুটি",
             description: error.message || "Google দিয়ে লগইন করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
         });
+    } finally {
         setGoogleLoading(false);
     }
   };
@@ -108,7 +85,8 @@ export default function LoginPage() {
             description: "আপনি বেনামে সফলভাবে লগ ইন করেছেন।",
         });
         router.push('/');
-    } catch (error: any) {
+    } catch (error: any)
+{
         console.error(error);
         toast({
             variant: "destructive",
@@ -119,14 +97,6 @@ export default function LoginPage() {
         setAnonymousLoading(false);
     }
   };
-  
-  if (!isMounted || checkingRedirect) {
-    return (
-        <div className="flex items-center justify-center min-h-screen bg-background">
-            <Loader2 className="h-16 w-16 animate-spin text-primary" />
-        </div>
-    );
-  }
 
   const isAnyLoading = loading || googleLoading || anonymousLoading;
 
@@ -206,5 +176,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    
