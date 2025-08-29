@@ -1,19 +1,18 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, getDocs, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Post, User } from "@/lib/data";
-import { mockPosts } from "@/lib/data";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PostCard } from "@/components/post-card";
-import { User as UserIcon, Calendar, Loader2 } from "lucide-react";
+import { User as UserIcon, Loader2 } from "lucide-react";
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
@@ -21,15 +20,45 @@ async function getUserProfile(userId: string): Promise<User | null> {
   const userDocRef = doc(db, "users", userId);
   const userDoc = await getDoc(userDocRef);
   if (userDoc.exists()) {
-    return userDoc.data() as User;
+    return { id: userDoc.id, ...userDoc.data() } as User;
   }
   return null;
 }
 
 export default function ProfilePage({ params }: { params: { id: string } }) {
   const [user, setUser] = useState<User | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [postsLoading, setPostsLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
+
+   const fetchUserAndPosts = useCallback(async () => {
+      setLoading(true);
+      setPostsLoading(true);
+      
+      const userProfile = await getUserProfile(params.id);
+      
+      if (userProfile) {
+        setUser(userProfile);
+        
+        const postsQuery = query(
+          collection(db, "posts"), 
+          where("authorId", "==", params.id),
+          orderBy("createdAt", "desc")
+        );
+        const querySnapshot = await getDocs(postsQuery);
+        const postsData = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            author: userProfile, // We already have the author info
+        })) as Post[];
+        setPosts(postsData);
+      }
+      
+      setLoading(false);
+      setPostsLoading(false);
+    }, [params.id]);
+
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -39,17 +68,8 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
   }, []);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      setLoading(true);
-      const userProfile = await getUserProfile(params.id);
-      if (userProfile) {
-        setUser(userProfile);
-      }
-      setLoading(false);
-    };
-
-    fetchUser();
-  }, [params.id]);
+    fetchUserAndPosts();
+  }, [fetchUserAndPosts]);
 
   if (loading) {
     return (
@@ -62,8 +82,6 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
   if (!user) {
     notFound();
   }
-
-  const userPosts = mockPosts.filter(p => p.author.id === user.id);
 
   return (
     <div>
@@ -112,8 +130,12 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
             <TabsTrigger value="likes">লাইকস</TabsTrigger>
           </TabsList>
           <TabsContent value="posts" className="p-4 md:p-6 space-y-4">
-             {userPosts.length > 0 ? (
-                userPosts.map(post => <PostCard key={post.id} post={post} />)
+             {postsLoading ? (
+                <div className="flex items-center justify-center py-16">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+             ) : posts.length > 0 ? (
+                posts.map(post => <PostCard key={post.id} post={post} />)
              ) : (
                 <div className="text-center py-16 text-muted-foreground">
                     <p>এখনও কোনো পোস্ট নেই</p>

@@ -15,15 +15,23 @@ import { useToast } from "@/hooks/use-toast";
 import { generateRelevantHashtags } from "@/ai/flows/generate-relevant-hashtags";
 import { Badge } from "./ui/badge";
 import { User } from "@/lib/data";
+import { db } from "@/lib/firebase";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 
 
 const postSchema = z.object({
   content: z.string().min(1, { message: "পোস্ট খালি থাকতে পারে না।" }).max(280, { message: "পোস্ট ২৮০ অক্ষরের বেশি হতে পারে না।" }),
 });
 
-export function CreatePost({ user }: { user: User }) {
+interface CreatePostProps {
+    user: User;
+    onPostCreated: () => void;
+}
+
+export function CreatePost({ user, onPostCreated }: CreatePostProps) {
   const [hashtags, setHashtags] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof postSchema>>({
@@ -66,15 +74,46 @@ export function CreatePost({ user }: { user: User }) {
     form.setValue("content", `${currentContent} ${tag}`.trim());
   };
 
-  function onSubmit(values: z.infer<typeof postSchema>) {
-    console.log(values);
-    toast({
-      title: "পোস্ট সফল হয়েছে!",
-      description: "আপনার পোস্ট সফলভাবে তৈরি হয়েছে।",
-    });
-    form.reset();
-    setHashtags([]);
+  async function onSubmit(values: z.infer<typeof postSchema>) {
+    if (!user) {
+        toast({
+            variant: "destructive",
+            title: "ত্রুটি",
+            description: "পোস্ট করার জন্য আপনাকে লগ-ইন করতে হবে।",
+        });
+        return;
+    }
+
+    setIsSubmitting(true);
+    try {
+        await addDoc(collection(db, "posts"), {
+            authorId: user.id,
+            content: values.content,
+            createdAt: serverTimestamp(),
+            likes: 0,
+            comments: 0,
+        });
+
+        toast({
+          title: "পোস্ট সফল হয়েছে!",
+          description: "আপনার পোস্ট সফলভাবে তৈরি হয়েছে।",
+        });
+        form.reset();
+        setHashtags([]);
+        onPostCreated();
+    } catch (error) {
+        console.error("Error creating post: ", error);
+         toast({
+            variant: "destructive",
+            title: "ত্রুটি",
+            description: "পোস্ট তৈরি করা যায়নি।",
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
   }
+
+  const isLoading = isGenerating || isSubmitting;
 
   return (
     <Card>
@@ -97,6 +136,7 @@ export function CreatePost({ user }: { user: User }) {
                         className="resize-none border-none focus-visible:ring-0 text-lg"
                         rows={3}
                         {...field}
+                        disabled={isLoading}
                       />
                     </FormControl>
                     <FormMessage />
@@ -117,14 +157,16 @@ export function CreatePost({ user }: { user: User }) {
 
             <div className="flex justify-between items-center pl-16">
               <div className="flex gap-2 text-muted-foreground">
-                <Button variant="ghost" size="icon" type="button">
+                <Button variant="ghost" size="icon" type="button" disabled={isLoading}>
                   <Image className="h-5 w-5" />
                 </Button>
-                <Button variant="ghost" size="icon" type="button" onClick={handleGenerateHashtags} disabled={isGenerating}>
+                <Button variant="ghost" size="icon" type="button" onClick={handleGenerateHashtags} disabled={isLoading}>
                   {isGenerating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Hash className="h-5 w-5" />}
                 </Button>
               </div>
-              <Button type="submit" className="rounded-full" disabled={isGenerating}>পোস্ট করুন</Button>
+              <Button type="submit" className="rounded-full" disabled={isLoading}>
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'পোস্ট করুন'}
+              </Button>
             </div>
           </form>
         </Form>

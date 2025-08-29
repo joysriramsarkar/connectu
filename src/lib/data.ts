@@ -12,12 +12,13 @@ export type User = {
 
 export type Post = {
   id: string;
-  author: User;
+  authorId: string;
+  author: User; // This will be populated after fetching
   content: string;
   image?: string;
   likes: number;
   comments: number;
-  createdAt: string;
+  createdAt: any; // Firestore timestamp
 };
 
 export type Message = {
@@ -28,13 +29,14 @@ export type Message = {
 }
 
 export type Conversation = {
-  id: string;
+  id:string;
   participant: User;
   messages: Message[];
   lastMessage: string;
   lastMessageTimestamp: string;
 }
 
+// Mock data is kept for components that are not yet migrated to Firestore.
 export const mockUsers: User[] = [
   {
     id: 'user-1',
@@ -91,37 +93,13 @@ export const mockUsers: User[] = [
 export const mockPosts: Post[] = [
   {
     id: 'post-1',
+    authorId: 'user-2',
     author: mockUsers[1],
     content: 'আজকের সূর্যাস্ত অসাধারণ ছিল! প্রকৃতির সৌন্দর্য সত্যিই মন মুগ্ধকর। 🌅 #প্রকৃতি #শান্তি',
     image: 'https://picsum.photos/seed/post1/600/400',
     likes: 152,
     comments: 12,
     createdAt: '২ ঘন্টা আগে',
-  },
-  {
-    id: 'post-2',
-    author: mockUsers[0],
-    content: 'আমার নতুন প্রজেক্টের জন্য কোডিং করছি। আপনাদের সবার সমর্থন চাই! 👨‍💻 #প্রোগ্রামিং #ডেভেলপমেন্ট',
-    likes: 88,
-    comments: 25,
-    createdAt: '৫ ঘন্টা আগে',
-  },
-  {
-    id: 'post-3',
-    author: mockUsers[3],
-    content: 'পাহাড়ের চূড়া থেকে তোলা একটি ছবি। এই দৃশ্য ভোলার নয়। 🏔️ #ভ্রমণ #পাহাড়',
-    image: 'https://picsum.photos/seed/post3/600/800',
-    likes: 430,
-    comments: 45,
-    createdAt: '১ দিন আগে',
-  },
-   {
-    id: 'post-4',
-    author: mockUsers[2],
-    content: 'নতুন বই পড়া শুরু করলাম। আপনার প্রিয় বই কোনটি? 📚 #বইপ্রেমী #পড়া',
-    likes: 210,
-    comments: 78,
-    createdAt: '২ দিন আগে',
   },
 ];
 

@@ -1,14 +1,14 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, getDocs, query, orderBy } from "firebase/firestore";
 import { PostCard } from "@/components/post-card";
 import { CreatePost } from "@/components/create-post";
-import { mockPosts, mockUsers, User as AppUser } from "@/lib/data";
+import { mockUsers, User as AppUser, Post } from "@/lib/data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ async function getUserProfile(userId: string): Promise<AppUser | null> {
   const userDocRef = doc(db, "users", userId);
   const userDoc = await getDoc(userDocRef);
   if (userDoc.exists()) {
-    return userDoc.data() as AppUser;
+    return { id: userDoc.id, ...userDoc.data() } as AppUser;
   }
   return null;
 }
@@ -39,28 +39,46 @@ async function createUserProfile(firebaseUser: FirebaseUser): Promise<AppUser> {
     return newUser;
 }
 
-
 export default function Home() {
   const [user, setUser] = useState<AppUser | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [postsLoading, setPostsLoading] = useState(true);
   const router = useRouter();
+
+  const fetchPosts = useCallback(async () => {
+    setPostsLoading(true);
+    const postsQuery = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+    const querySnapshot = await getDocs(postsQuery);
+    const postsData = await Promise.all(
+        querySnapshot.docs.map(async (doc) => {
+            const postData = doc.data();
+            const author = await getUserProfile(postData.authorId);
+            return { id: doc.id, ...postData, author } as Post;
+        })
+    );
+    setPosts(postsData);
+    setPostsLoading(false);
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
+        setLoading(true);
         let userProfile = await getUserProfile(firebaseUser.uid);
         if (!userProfile) {
             userProfile = await createUserProfile(firebaseUser);
         }
         setUser(userProfile);
+        setLoading(false);
+        fetchPosts();
       } else {
         router.push('/login');
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [router]);
+  }, [router, fetchPosts]);
 
   const suggestedUsers = mockUsers.slice(2, 6);
 
@@ -79,11 +97,24 @@ export default function Home() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-4 p-4 md:p-6">
       <div className="md:col-span-2 xl:col-span-3 space-y-6">
-        <CreatePost user={user} />
+        <CreatePost user={user} onPostCreated={fetchPosts} />
         <div className="space-y-4">
-          {mockPosts.map((post) => (
-            <PostCard key={post.id} post={post} />
-          ))}
+          {postsLoading ? (
+            <div className="space-y-4">
+              <PostCard post={{id: '1'} as Post} />
+              <PostCard post={{id: '2'} as Post} />
+            </div>
+          ) : posts.length > 0 ? (
+             posts.map((post) => (
+                <PostCard key={post.id} post={post} />
+              ))
+          ) : (
+             <Card>
+                <CardContent className="p-6 text-center text-muted-foreground">
+                    এখনও কোনো পোস্ট নেই। প্রথম পোস্টটি আপনিই করুন!
+                </CardContent>
+             </Card>
+          )}
         </div>
       </div>
       <aside className="hidden md:block md:col-span-1 space-y-6">
