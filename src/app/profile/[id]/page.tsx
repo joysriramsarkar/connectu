@@ -55,7 +55,7 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
         setLoading(false);
     });
     return () => unsub();
-  }, [params]);
+  }, [params.id]);
 
 
   const fetchPosts = useCallback(async () => {
@@ -77,7 +77,7 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
     );
     setPosts(postsData);
     setPostsLoading(false);
-  }, [params, user]);
+  }, [params.id, user]);
 
   useEffect(() => {
     if(user) {
