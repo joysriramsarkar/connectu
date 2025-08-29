@@ -52,7 +52,6 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // The onAuthStateChanged listener will handle the redirect.
     } catch (error: any) {
       console.error(error);
       toast({
@@ -69,18 +68,8 @@ export default function LoginPage() {
     setGoogleLoading(true);
     try {
         await signInWithPopup(auth, googleProvider);
-        // The onAuthStateChanged listener will handle the redirect.
     } catch (error: any) {
         console.error(error);
-        let description = "Google দিয়ে লগইন করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।";
-        if (error.code === 'auth/popup-closed-by-user') {
-            description = "পপ-আপটি বন্ধ করে দেওয়া হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন এবং আপনার ব্রাউজারে পপ-আপ ব্লক করা নেই তা নিশ্চিত করুন।";
-        }
-        toast({
-            variant: "destructive",
-            title: "ত্রুটি",
-            description: description,
-        });
     } finally {
         setGoogleLoading(false);
     }
@@ -90,7 +79,6 @@ export default function LoginPage() {
     setAnonymousLoading(true);
     try {
         await signInAnonymously(auth);
-        // The onAuthStateChanged listener will handle the redirect.
     } catch (error: any)
 {
         console.error(error);
@@ -182,5 +170,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    
