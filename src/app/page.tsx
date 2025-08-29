@@ -5,10 +5,10 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, collection, getDocs, query, orderBy } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, getDocs, query, orderBy, limit, where } from "firebase/firestore";
 import { PostCard } from "@/components/post-card";
 import { CreatePost } from "@/components/create-post";
-import { mockUsers, User as AppUser, Post } from "@/lib/data";
+import { User as AppUser, Post } from "@/lib/data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import Link from "next/link";
 import { Loader2 } from 'lucide-react';
 
 async function getUserProfile(userId: string): Promise<AppUser | null> {
+  if (!userId) return null;
   const userDocRef = doc(db, "users", userId);
   const userDoc = await getDoc(userDocRef);
   if (userDoc.exists()) {
@@ -42,23 +43,36 @@ async function createUserProfile(firebaseUser: FirebaseUser): Promise<AppUser> {
 export default function Home() {
   const [user, setUser] = useState<AppUser | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [suggestedUsers, setSuggestedUsers] = useState<AppUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [postsLoading, setPostsLoading] = useState(true);
   const router = useRouter();
 
   const fetchPosts = useCallback(async () => {
     setPostsLoading(true);
-    const postsQuery = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+    const postsQuery = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(20));
     const querySnapshot = await getDocs(postsQuery);
     const postsData = await Promise.all(
-        querySnapshot.docs.map(async (doc) => {
-            const postData = doc.data();
+        querySnapshot.docs.map(async (postDoc) => {
+            const postData = postDoc.data();
             const author = await getUserProfile(postData.authorId);
-            return { id: doc.id, ...postData, author } as Post;
+            return { id: postDoc.id, ...postData, author } as Post;
         })
     );
-    setPosts(postsData);
+    setPosts(postsData.filter(p => p.author));
     setPostsLoading(false);
+  }, []);
+  
+  const fetchSuggestedUsers = useCallback(async (currentUserId: string) => {
+    if (!currentUserId) return;
+    const usersQuery = query(
+      collection(db, "users"), 
+      where("id", "!=", currentUserId),
+      limit(5)
+    );
+    const usersSnapshot = await getDocs(usersQuery);
+    const usersData = usersSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as AppUser);
+    setSuggestedUsers(usersData);
   }, []);
 
   useEffect(() => {
@@ -72,15 +86,15 @@ export default function Home() {
         setUser(userProfile);
         setLoading(false);
         fetchPosts();
+        fetchSuggestedUsers(firebaseUser.uid);
       } else {
         router.push('/login');
       }
     });
 
     return () => unsubscribe();
-  }, [router, fetchPosts]);
+  }, [router, fetchPosts, fetchSuggestedUsers]);
 
-  const suggestedUsers = mockUsers.slice(2, 6);
 
   if (loading) {
     return (
@@ -101,8 +115,8 @@ export default function Home() {
         <div className="space-y-4">
           {postsLoading ? (
             <div className="space-y-4">
-              <PostCard post={{id: '1'} as Post} />
-              <PostCard post={{id: '2'} as Post} />
+              <PostCard post={{id: '1', authorId: '1'} as Post} />
+              <PostCard post={{id: '2', authorId: '2'} as Post} />
             </div>
           ) : posts.length > 0 ? (
              posts.map((post) => (
@@ -123,21 +137,21 @@ export default function Home() {
             <CardTitle>আপনার জন্য পরামর্শ</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {suggestedUsers.map(user => (
-              <div key={user.id} className="flex items-center justify-between">
-                <Link href={`/profile/${user.id}`} className="flex items-center gap-3">
+            {suggestedUsers.length > 0 ? suggestedUsers.map(suggestedUser => (
+              <div key={suggestedUser.id} className="flex items-center justify-between">
+                <Link href={`/profile/${suggestedUser.id}`} className="flex items-center gap-3">
                   <Avatar>
-                    <AvatarImage src={user.avatar} alt={user.name} />
-                    <AvatarFallback>{user.name[0]}</AvatarFallback>
+                    <AvatarImage src={suggestedUser.avatar} alt={suggestedUser.name} />
+                    <AvatarFallback>{suggestedUser.name[0]}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-semibold">{user.name}</p>
-                    <p className="text-sm text-muted-foreground">@{user.handle}</p>
+                    <p className="font-semibold">{suggestedUser.name}</p>
+                    <p className="text-sm text-muted-foreground">@{suggestedUser.handle}</p>
                   </div>
                 </Link>
-                <Button size="sm" variant="outline">অনুসরণ করুন</Button>
+                <Button size="sm" variant="outline" onClick={() => router.push(`/profile/${suggestedUser.id}`)}>প্রোফাইল দেখুন</Button>
               </div>
-            ))}
+            )) : <p className="text-sm text-muted-foreground">কোনো পরামর্শ নেই।</p>}
           </CardContent>
         </Card>
       </aside>

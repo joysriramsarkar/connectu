@@ -4,7 +4,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import { doc, getDoc, collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, getDocs, orderBy, writeBatch, increment, onSnapshot, DocumentData, deleteDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Post, User } from "@/lib/data";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,10 +13,11 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PostCard } from "@/components/post-card";
 import { User as UserIcon, Loader2 } from "lucide-react";
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
 async function getUserProfile(userId: string): Promise<User | null> {
+  if(!userId) return null;
   const userDocRef = doc(db, "users", userId);
   const userDoc = await getDoc(userDocRef);
   if (userDoc.exists()) {
@@ -30,35 +31,9 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [postsLoading, setPostsLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-
-   const fetchUserAndPosts = useCallback(async () => {
-      setLoading(true);
-      setPostsLoading(true);
-      
-      const userProfile = await getUserProfile(params.id);
-      
-      if (userProfile) {
-        setUser(userProfile);
-        
-        const postsQuery = query(
-          collection(db, "posts"), 
-          where("authorId", "==", params.id),
-          orderBy("createdAt", "desc")
-        );
-        const querySnapshot = await getDocs(postsQuery);
-        const postsData = querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-            author: userProfile, // We already have the author info
-        })) as Post[];
-        setPosts(postsData);
-      }
-      
-      setLoading(false);
-      setPostsLoading(false);
-    }, [params.id]);
-
+  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -66,10 +41,94 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
     });
     return () => unsubscribe();
   }, []);
+  
+  const fetchUser = useCallback(async () => {
+      const userProfile = await getUserProfile(params.id);
+      if (userProfile) {
+        setUser(userProfile);
+      } else {
+        setLoading(false);
+      }
+  }, [params.id]);
 
   useEffect(() => {
-    fetchUserAndPosts();
-  }, [fetchUserAndPosts]);
+    if (!params.id) return;
+    setLoading(true);
+    const unsub = onSnapshot(doc(db, "users", params.id), (doc) => {
+        if(doc.exists()){
+            setUser({ id: doc.id, ...doc.data() } as User);
+        }
+        setLoading(false);
+    });
+    return () => unsub();
+  }, [params.id]);
+
+
+  const fetchPosts = useCallback(async () => {
+    if(!user) return;
+    setPostsLoading(true);
+    const postsQuery = query(
+      collection(db, "posts"), 
+      where("authorId", "==", params.id),
+      orderBy("createdAt", "desc")
+    );
+    const querySnapshot = await getDocs(postsQuery);
+    const postsData = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        author: user,
+    })) as Post[];
+    setPosts(postsData);
+    setPostsLoading(false);
+  }, [params.id, user]);
+
+  useEffect(() => {
+    if(user) {
+        fetchPosts();
+    }
+  }, [user, fetchPosts]);
+
+  useEffect(() => {
+    if (!currentUser || !user) return;
+    setFollowLoading(true);
+    const followDocRef = doc(db, "follows", `${currentUser.uid}_${user.id}`);
+    const unsubscribe = onSnapshot(followDocRef, (doc) => {
+        setIsFollowing(doc.exists());
+        setFollowLoading(false);
+    });
+    return () => unsubscribe();
+  }, [currentUser, user]);
+
+  const handleFollowToggle = async () => {
+    if (!currentUser || !user || followLoading) return;
+    setFollowLoading(true);
+
+    const currentUserRef = doc(db, "users", currentUser.uid);
+    const targetUserRef = doc(db, "users", user.id);
+    const followDocRef = doc(db, "follows", `${currentUser.uid}_${user.id}`);
+    
+    try {
+        const batch = writeBatch(db);
+        if (isFollowing) {
+            batch.delete(followDocRef);
+            batch.update(currentUserRef, { following: increment(-1) });
+            batch.update(targetUserRef, { followers: increment(-1) });
+        } else {
+            batch.set(followDocRef, {
+                followerId: currentUser.uid,
+                followingId: user.id,
+                createdAt: new Date(),
+            });
+            batch.update(currentUserRef, { following: increment(1) });
+            batch.update(targetUserRef, { followers: increment(1) });
+        }
+        await batch.commit();
+    } catch (error) {
+        console.error("Error toggling follow:", error);
+    } finally {
+        setFollowLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -99,7 +158,9 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
           {currentUser?.uid === user.id ? (
             <Button variant="outline">প্রোফাইল সম্পাদনা করুন</Button>
           ) : (
-            <Button>অনুসরণ করুন</Button>
+            <Button onClick={handleFollowToggle} disabled={followLoading}>
+              {followLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : isFollowing ? 'অনুসরণ করছেন' : 'অনুসরণ করুন'}
+            </Button>
           )}
         </div>
         
@@ -113,11 +174,11 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
         <div className="flex items-center gap-4 mt-4 text-muted-foreground">
             <div className="flex items-center gap-1">
                 <UserIcon className="w-4 h-4" />
-                <span><span className="font-bold text-foreground">{user.following.toLocaleString('bn-BD')}</span> অনুসরণ করছেন</span>
+                <span><span className="font-bold text-foreground">{user.following?.toLocaleString('bn-BD') || 0}</span> অনুসরণ করছেন</span>
             </div>
              <div className="flex items-center gap-1">
                 <UserIcon className="w-4 h-4" />
-                <span><span className="font-bold text-foreground">{user.followers.toLocaleString('bn-BD')}</span> অনুসরণকারী</span>
+                <span><span className="font-bold text-foreground">{user.followers?.toLocaleString('bn-BD') || 0}</span> অনুসরণকারী</span>
             </div>
         </div>
       </div>
