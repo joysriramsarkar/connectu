@@ -42,15 +42,6 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
     return () => unsubscribe();
   }, []);
   
-  const fetchUser = useCallback(async () => {
-      const userProfile = await getUserProfile(params.id);
-      if (userProfile) {
-        setUser(userProfile);
-      } else {
-        setLoading(false);
-      }
-  }, [params.id]);
-
   useEffect(() => {
     if (!params.id) return;
     setLoading(true);
@@ -73,11 +64,13 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
       orderBy("createdAt", "desc")
     );
     const querySnapshot = await getDocs(postsQuery);
-    const postsData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        author: user,
-    })) as Post[];
+    const postsData = await Promise.all(
+        querySnapshot.docs.map(async (doc) => {
+            const postData = doc.data();
+            // Since we are on the author's profile page, we can use the user state
+            return { id: doc.id, ...postData, author: user } as Post;
+        })
+    );
     setPosts(postsData);
     setPostsLoading(false);
   }, [params.id, user]);
@@ -158,7 +151,7 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
           {currentUser?.uid === user.id ? (
             <Button variant="outline">প্রোফাইল সম্পাদনা করুন</Button>
           ) : (
-            <Button onClick={handleFollowToggle} disabled={followLoading}>
+            currentUser && <Button onClick={handleFollowToggle} disabled={followLoading}>
               {followLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : isFollowing ? 'অনুসরণ করছেন' : 'অনুসরণ করুন'}
             </Button>
           )}
