@@ -85,7 +85,7 @@ export function Sidebar() {
             <h1 className="text-2xl font-bold hidden xl:inline">ConnectU</h1>
         </Link>
         <MainNav userId={user?.uid || null} loading={loading} />
-        <Button className="w-full rounded-full py-6 text-lg mt-4 hidden xl:block">
+        <Button className="w-full rounded-full py-6 text-lg mt-4 hidden  xl:flex items-center justify-center">
             পোস্ট করুন
         </Button>
         <Button size="icon" className="w-12 h-12 rounded-full mt-4 xl:hidden">
