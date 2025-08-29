@@ -2,9 +2,9 @@
 "use client";
 
 import { useEffect, useState, useCallback } from 'react';
-import { notFound, useParams } from "next/navigation";
+import { notFound, useParams, useRouter } from "next/navigation";
 import Image from "next/image";
-import { doc, getDoc, collection, query, where, getDocs, orderBy, writeBatch, increment, onSnapshot, DocumentData, deleteDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, getDocs, orderBy, writeBatch, increment, onSnapshot, DocumentData, deleteDoc, setDoc, getDocsFromCache } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Post, User } from "@/lib/data";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,13 +12,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PostCard } from "@/components/post-card";
-import { User as UserIcon, Loader2 } from "lucide-react";
+import { User as UserIcon, Loader2, MessageSquare } from "lucide-react";
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
 
 export default function ProfilePage() {
   const params = useParams();
+  const router = useRouter();
   const userId = params.id as string;
 
   const [user, setUser] = useState<User | null>(null);
@@ -51,8 +52,8 @@ export default function ProfilePage() {
   }, [userId]);
 
 
-  const fetchPosts = useCallback(async (author: User) => {
-    if(!author || !userId) return;
+  const fetchPosts = useCallback(async () => {
+    if(!user || !userId) return;
     setPostsLoading(true);
     const postsQuery = query(
       collection(db, "posts"), 
@@ -62,7 +63,7 @@ export default function ProfilePage() {
     try {
       const querySnapshot = await getDocs(postsQuery);
       const postsData = querySnapshot.docs.map((doc) => {
-          return { id: doc.id, ...doc.data(), author: author } as Post;
+          return { id: doc.id, ...doc.data(), author: user } as Post;
       });
       setPosts(postsData);
     } catch(error) {
@@ -70,11 +71,11 @@ export default function ProfilePage() {
     } finally {
       setPostsLoading(false);
     }
-  }, [userId]);
+  }, [userId, user]);
 
   useEffect(() => {
     if(user) {
-        fetchPosts(user);
+        fetchPosts();
     }
   }, [user, fetchPosts]);
 
@@ -120,6 +121,24 @@ export default function ProfilePage() {
     }
   };
 
+  const handleSendMessage = async () => {
+    if (!currentUser || !user) return;
+
+    const conversationId = [currentUser.uid, user.id].sort().join('_');
+    const conversationRef = doc(db, 'conversations', conversationId);
+    
+    const docSnap = await getDoc(conversationRef);
+    if (!docSnap.exists()) {
+        await setDoc(conversationRef, {
+            participants: [currentUser.uid, user.id],
+            lastMessage: '',
+            lastMessageTimestamp: new Date(),
+        });
+    }
+    
+    router.push('/messages');
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -145,13 +164,22 @@ export default function ProfilePage() {
               <AvatarFallback>{user.name.substring(0, 2)}</AvatarFallback>
             </Avatar>
           </div>
-          {currentUser?.uid === user.id ? (
-            <Button variant="outline">প্রোফাইল সম্পাদনা করুন</Button>
-          ) : (
-            currentUser && <Button onClick={handleFollowToggle} disabled={followLoading}>
-              {followLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : isFollowing ? 'অনুসরণ করছেন' : 'অনুসরণ করুন'}
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {currentUser?.uid === user.id ? (
+              <Button variant="outline">প্রোফাইল সম্পাদনা করুন</Button>
+            ) : (
+              currentUser && (
+                <>
+                <Button onClick={handleSendMessage} variant="outline" size="icon">
+                    <MessageSquare />
+                </Button>
+                <Button onClick={handleFollowToggle} disabled={followLoading}>
+                {followLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : isFollowing ? 'অনুসরণ করছেন' : 'অনুসরণ করুন'}
+                </Button>
+                </>
+              )
+            )}
+          </div>
         </div>
         
         <div className="mt-4">

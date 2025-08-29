@@ -20,7 +20,8 @@ import {
   addDoc,
   serverTimestamp,
   doc,
-  getDoc
+  getDoc,
+  updateDoc
 } from "firebase/firestore";
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { format } from 'date-fns';
@@ -57,7 +58,7 @@ export default function MessagesPage() {
   useEffect(() => {
     if (!currentUser) return;
     setLoading(true);
-    const q = query(collection(db, "conversations"), where("participants", "array-contains", currentUser.uid));
+    const q = query(collection(db, "conversations"), where("participants", "array-contains", currentUser.uid), orderBy("lastMessageTimestamp", "desc"));
     
     const unsubscribe = onSnapshot(q, async (querySnapshot) => {
       const convs: Conversation[] = [];
@@ -73,7 +74,7 @@ export default function MessagesPage() {
           } as Conversation);
         }
       }
-      setConversations(convs.sort((a,b) => b.lastMessageTimestamp?.toMillis() - a.lastMessageTimestamp?.toMillis()));
+      setConversations(convs);
       setLoading(false);
     });
 
@@ -108,11 +109,20 @@ export default function MessagesPage() {
     const content = newMessage;
     setNewMessage("");
 
-    await addDoc(collection(db, "conversations", selectedConversation.id, "messages"), {
+    const conversationRef = doc(db, "conversations", selectedConversation.id);
+    const messagesColRef = collection(conversationRef, "messages");
+
+    await addDoc(messagesColRef, {
         senderId: currentUser.uid,
         content: content,
         timestamp: serverTimestamp()
     });
+    
+    await updateDoc(conversationRef, {
+      lastMessage: content,
+      lastMessageTimestamp: serverTimestamp()
+    });
+
     setSending(false);
   };
   
@@ -195,7 +205,7 @@ export default function MessagesPage() {
             <form onSubmit={handleSendMessage} className="p-4 border-t border-border">
               <div className="relative">
                 <Input placeholder="একটি বার্তা লিখুন..." className="pr-12 h-12" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} disabled={sending} />
-                <Button size="icon" className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9" type="submit" disabled={sending}>
+                <Button size="icon" className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9" type="submit" disabled={!newMessage.trim() || sending}>
                   {sending ? <Loader2 className="h-4 w-4 animate-spin"/> : <Send />}
                 </Button>
               </div>

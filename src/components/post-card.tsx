@@ -8,13 +8,15 @@ import type { Post } from '@/lib/data';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Heart, MessageCircle, Send } from 'lucide-react';
+import { Heart, MessageCircle, Send, Link as LinkIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { bn } from 'date-fns/locale';
 import { auth, db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, deleteDoc, increment, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc, increment, writeBatch, onSnapshot } from 'firebase/firestore';
 import { useAuthState } from 'react-firebase-hooks/auth';
+import { useToast } from "@/hooks/use-toast";
+import { CommentSheet } from './comment-sheet';
 
 interface PostCardProps {
   post: Post;
@@ -22,19 +24,37 @@ interface PostCardProps {
 
 export function PostCard({ post }: PostCardProps) {
   const [user] = useAuthState(auth);
+  const { toast } = useToast();
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likes || 0);
+  const [commentCount, setCommentCount] = useState(post.comments || 0);
   const [likeLoading, setLikeLoading] = useState(false);
+  const [isCommentSheetOpen, setIsCommentSheetOpen] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      const likeDocRef = doc(db, "posts", post.id, "likes", user.uid);
-      getDoc(likeDocRef).then(docSnap => {
-        if (docSnap.exists()) {
-          setIsLiked(true);
+    if (!post.id) return;
+    const postRef = doc(db, "posts", post.id);
+    const unsubscribe = onSnapshot(postRef, (doc) => {
+        if(doc.exists()) {
+            const data = doc.data();
+            setLikeCount(data.likes || 0);
+            setCommentCount(data.comments || 0);
         }
+    });
+    return () => unsubscribe();
+  }, [post.id]);
+  
+  useEffect(() => {
+    let unsubscribe: () => void;
+    if (user && post.id) {
+      const likeDocRef = doc(db, "posts", post.id, "likes", user.uid);
+      unsubscribe = onSnapshot(likeDocRef, (doc) => {
+        setIsLiked(doc.exists());
       });
     }
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [user, post.id]);
 
   const handleLike = async () => {
@@ -45,26 +65,39 @@ export function PostCard({ post }: PostCardProps) {
     const likeRef = doc(db, "posts", post.id, "likes", user.uid);
 
     try {
-        const batch = writeBatch(db);
-        if (isLiked) {
-            batch.delete(likeRef);
-            batch.update(postRef, { likes: increment(-1) });
-            setLikeCount(prev => prev - 1);
-            setIsLiked(false);
-        } else {
-            batch.set(likeRef, { userId: user.uid });
-            batch.update(postRef, { likes: increment(1) });
-            setLikeCount(prev => prev + 1);
-            setIsLiked(true);
-        }
-        await batch.commit();
+        await writeBatch(db).set(likeRef, { userId: user.uid }).update(postRef, { likes: increment(1) }).commit();
     } catch (error) {
         console.error("Error liking post: ", error);
     } finally {
         setLikeLoading(false);
     }
   };
+
+  const handleUnlike = async () => {
+    if (!user || likeLoading) return;
+    setLikeLoading(true);
+
+    const postRef = doc(db, "posts", post.id);
+    const likeRef = doc(db, "posts", post.id, "likes", user.uid);
+
+    try {
+        await writeBatch(db).delete(likeRef).update(postRef, { likes: increment(-1) }).commit();
+    } catch (error) {
+        console.error("Error unliking post: ", error);
+    } finally {
+        setLikeLoading(false);
+    }
+  };
   
+  const handleShare = () => {
+    const postUrl = `${window.location.origin}/post/${post.id}`;
+    navigator.clipboard.writeText(postUrl);
+    toast({
+      title: "লিঙ্ক কপি হয়েছে",
+      description: "পোস্টের লিঙ্ক আপনার ক্লিপবোর্ডে কপি করা হয়েছে।",
+    });
+  };
+
   const formattedDate = post.createdAt?.toDate ? formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true, locale: bn }) : 'কিছুক্ষণ আগে';
 
   if (!post.author) {
@@ -89,6 +122,7 @@ export function PostCard({ post }: PostCardProps) {
   }
 
   return (
+    <>
     <Card>
       <CardHeader className="p-4">
         <div className="flex items-center gap-3">
@@ -114,19 +148,21 @@ export function PostCard({ post }: PostCardProps) {
       </CardContent>
       <CardFooter className="p-4 pt-2">
         <div className="flex justify-start gap-4 text-muted-foreground">
-          <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={handleLike} disabled={!user || likeLoading}>
+          <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={isLiked ? handleUnlike : handleLike} disabled={!user || likeLoading}>
             <Heart className={cn("h-5 w-5", isLiked && 'fill-red-500 text-red-500')} />
             <span>{(likeCount || 0).toLocaleString('bn-BD')}</span>
           </Button>
-          <Button variant="ghost" size="sm" className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={() => setIsCommentSheetOpen(true)} disabled={!user}>
             <MessageCircle className="h-5 w-5" />
-            <span>{(post.comments || 0).toLocaleString('bn-BD')}</span>
+            <span>{(commentCount || 0).toLocaleString('bn-BD')}</span>
           </Button>
-          <Button variant="ghost" size="sm" className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={handleShare}>
             <Send className="h-5 w-5" />
           </Button>
         </div>
       </CardFooter>
     </Card>
+    {user && <CommentSheet postId={post.id} author={post.author} open={isCommentSheetOpen} onOpenChange={setIsCommentSheetOpen} />}
+    </>
   );
 }

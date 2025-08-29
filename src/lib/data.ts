@@ -23,6 +23,14 @@ export type Post = {
   createdAt: Timestamp;
 };
 
+export type Comment = {
+    id: string;
+    authorId: string;
+    author: User;
+    content: string;
+    createdAt: Timestamp;
+}
+
 export type Message = {
   id: string;
   senderId: string;
@@ -37,5 +45,3 @@ export type Conversation = {
   lastMessage: string;
   lastMessageTimestamp: Timestamp;
 }
-
-    
