@@ -57,35 +57,32 @@ export function PostCard({ post }: PostCardProps) {
     };
   }, [user, post.id]);
 
-  const handleLike = async () => {
-    if (!user || likeLoading) return;
-    setLikeLoading(true);
-    
-    const postRef = doc(db, "posts", post.id);
-    const likeRef = doc(db, "posts", post.id, "likes", user.uid);
-
-    try {
-        await writeBatch(db).set(likeRef, { userId: user.uid }).update(postRef, { likes: increment(1) }).commit();
-    } catch (error) {
-        console.error("Error liking post: ", error);
-    } finally {
-        setLikeLoading(false);
-    }
-  };
-
-  const handleUnlike = async () => {
-    if (!user || likeLoading) return;
+  const handleLikeToggle = async () => {
+    if (!user || likeLoading || !post.id) return;
     setLikeLoading(true);
 
     const postRef = doc(db, "posts", post.id);
     const likeRef = doc(db, "posts", post.id, "likes", user.uid);
+    const batch = writeBatch(db);
 
     try {
-        await writeBatch(db).delete(likeRef).update(postRef, { likes: increment(-1) }).commit();
+      if (isLiked) {
+        batch.delete(likeRef);
+        batch.update(postRef, { likes: increment(-1) });
+      } else {
+        batch.set(likeRef, { userId: user.uid });
+        batch.update(postRef, { likes: increment(1) });
+      }
+      await batch.commit();
     } catch (error) {
-        console.error("Error unliking post: ", error);
+      console.error("Error toggling like: ", error);
+      toast({
+        variant: "destructive",
+        title: "ত্রুটি",
+        description: "লাইক করার সময় একটি সমস্যা হয়েছে।",
+      });
     } finally {
-        setLikeLoading(false);
+      setLikeLoading(false);
     }
   };
   
@@ -148,7 +145,7 @@ export function PostCard({ post }: PostCardProps) {
       </CardContent>
       <CardFooter className="p-4 pt-2">
         <div className="flex justify-start gap-4 text-muted-foreground">
-          <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={isLiked ? handleUnlike : handleLike} disabled={!user || likeLoading}>
+          <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={handleLikeToggle} disabled={!user || likeLoading}>
             <Heart className={cn("h-5 w-5", isLiked && 'fill-red-500 text-red-500')} />
             <span>{(likeCount || 0).toLocaleString('bn-BD')}</span>
           </Button>
@@ -162,7 +159,7 @@ export function PostCard({ post }: PostCardProps) {
         </div>
       </CardFooter>
     </Card>
-    {user && <CommentSheet postId={post.id} author={post.author} open={isCommentSheetOpen} onOpenChange={setIsCommentSheetOpen} />}
+    {user && post.id && <CommentSheet postId={post.id} author={post.author} open={isCommentSheetOpen} onOpenChange={setIsCommentSheetOpen} />}
     </>
   );
 }

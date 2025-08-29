@@ -43,7 +43,7 @@ export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-   useEffect(() => {
+  useEffect(() => {
     const handleRedirectResult = async () => {
       try {
         const result = await getRedirectResult(auth);
@@ -53,7 +53,8 @@ export default function SignupPage() {
               description: "আপনি Google দিয়ে সফলভাবে সাইন আপ করেছেন।",
           });
           router.push('/');
-          return;
+        } else {
+            setCheckingRedirect(false);
         }
       } catch (error: any) {
         console.error("Google sign-in error after redirect:", error);
@@ -62,8 +63,8 @@ export default function SignupPage() {
             title: "ত্রুটি",
             description: error.message || "Google দিয়ে সাইন আপ করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
         });
+        setCheckingRedirect(false);
       }
-      setCheckingRedirect(false);
     };
     handleRedirectResult();
   }, [router, toast]);
@@ -226,4 +227,3 @@ export default function SignupPage() {
     </div>
   );
 }
-

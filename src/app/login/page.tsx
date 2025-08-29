@@ -39,13 +39,13 @@ export default function LoginPage() {
       try {
         const result = await getRedirectResult(auth);
         if (result) {
-          // No need to set googleLoading here, the page will redirect.
           toast({
               title: "সফল!",
               description: "আপনি Google দিয়ে সফলভাবে লগ ইন করেছেন।",
           });
           router.push('/');
-          return; // Stop further execution
+        } else {
+            setCheckingRedirect(false);
         }
       } catch (error: any) {
         console.error("Google sign-in error after redirect:", error);
@@ -54,8 +54,8 @@ export default function LoginPage() {
             title: "ত্রুটি",
             description: error.message || "Google দিয়ে লগইন করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
         });
+        setCheckingRedirect(false);
       }
-      setCheckingRedirect(false);
     };
     handleRedirectResult();
   }, [router, toast]);
@@ -205,4 +205,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
