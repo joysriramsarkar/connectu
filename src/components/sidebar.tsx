@@ -78,7 +78,7 @@ export function Sidebar() {
 
 
   return (
-    <aside className="sticky top-0 h-screen w-full md:w-20 xl:w-64 flex-col justify-between p-4 border-r border-border hidden md:flex">
+    <aside className="sticky top-0 h-screen md:w-20 xl:w-64 flex-col justify-between p-4 border-r border-border hidden md:flex">
       <div>
         <Link href="/" className="mb-8 flex items-center gap-2 justify-center xl:justify-start">
             <Rss className="h-8 w-8 text-primary" />

@@ -26,8 +26,10 @@ export default function RootLayout({
       <body className="font-body antialiased bg-background text-foreground">
         <div className="flex min-h-screen w-full">
           {showSidebar && <Sidebar />}
-          <main className="flex-1">
-            {children}
+          <main className="flex-1 overflow-y-auto">
+             <div className="w-full">
+                {children}
+             </div>
           </main>
         </div>
         <Toaster />
