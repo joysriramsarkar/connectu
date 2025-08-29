@@ -20,7 +20,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Rss, User as UserIcon } from 'lucide-react';
 
 
-// A simple SVG for the Google icon
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
         <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-1.5c-.83 0-1.5.67-1.5 1.5V12h3l-.5 3h-2.5v6.8c4.56-.93 8-4.96 8-9.8z"/>
@@ -39,8 +38,13 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [anonymousLoading, setAnonymousLoading] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -85,7 +89,14 @@ export default function SignupPage() {
     try {
         await signInWithPopup(auth, googleProvider);
     } catch (error: any) {
-        console.error(error);
+        if (error.code !== 'auth/popup-closed-by-user') {
+            console.error(error);
+            toast({
+                variant: "destructive",
+                title: "ত্রুটি",
+                description: "Google দিয়ে সাইন আপ করা যায়নি। অনুগ্রহ করে পপ-আপ চালু আছে কিনা দেখুন এবং আবার চেষ্টা করুন।",
+            });
+        }
     } finally {
         setGoogleLoading(false);
     }
@@ -106,6 +117,14 @@ export default function SignupPage() {
         setAnonymousLoading(false);
     }
   };
+  
+  if (!isClient) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <Loader2 className="h-16 w-16 animate-spin" />
+      </div>
+    );
+  }
   
   const isAnyLoading = loading || googleLoading || anonymousLoading;
 
