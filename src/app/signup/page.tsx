@@ -67,14 +67,13 @@ export default function SignupPage() {
   }, [router, toast]);
   
   const setupRecaptcha = () => {
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+    const recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         'size': 'invisible',
         'callback': () => {
           // reCAPTCHA solved
         }
       });
-    }
+    return recaptchaVerifier;
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -140,8 +139,7 @@ export default function SignupPage() {
     e.preventDefault();
     setPhoneLoading(true);
     try {
-      setupRecaptcha();
-      const appVerifier = window.recaptchaVerifier;
+      const appVerifier = setupRecaptcha();
       const result = await signInWithPhoneNumber(auth, `+${phone}`, appVerifier);
       setConfirmationResult(result);
       setPhoneAuthStep('enterOtp');
