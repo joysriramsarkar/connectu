@@ -169,7 +169,7 @@ export default function EditProfilePage() {
                         <Label>প্রোফাইল ফটো</Label>
                         <div className="mt-2 flex items-center gap-4">
                             <Avatar className="h-24 w-24">
-                                <AvatarImage src={avatarPreview || ''} alt={userProfile.name} />
+                                {avatarPreview && <AvatarImage src={avatarPreview} alt={userProfile.name} />}
                                 <AvatarFallback>{userProfile.name.substring(0, 2)}</AvatarFallback>
                             </Avatar>
                              <Input id="avatar" type="file" onChange={handleAvatarChange} className="max-w-xs" accept="image/*" />
@@ -205,4 +205,3 @@ export default function EditProfilePage() {
     </div>
   );
 }
-
