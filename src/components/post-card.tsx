@@ -20,7 +20,7 @@ import { User as FirebaseUser } from 'firebase/auth';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 
 const FacebookIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 512 512" fill="currentColor" {...props}><path d="M512,256c0,-141.4 -114.6,-256 -256,-256c-141.4,0 -256,114.6 -256,256c0,127.8 93.6,233.7 216,252.9l0,-178.9l-65,-0l0,-74l65,-0l0,-56.4c0,-64.5 38.2,-100.2 97.4,-100.2c28.1,0 52.1,2.1 59.1,3.1l0,66.2l-39.1,0c-31.3,0 -37.4,14.9 -37.4,36.8l0,47.9l73.6,0l-9.6,74l-64,0l0,178.9c122.4,-19.2 216,-125.1 216,-252.9Z" /></svg>
 );
 const TwitterIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M22 4s-.7 2.1-2 3.4c1.6 1.4 3.3 4.4 3.3 4.4s-1.4 1.4-2.8 1.4c-1.4 0-2.8-1.4-2.8-1.4s-1.4 2.8-4.2 2.8c-2.8 0-4.2-2.8-4.2-2.8s-1.4 1.4-2.8 1.4c-1.4 0-2.8-1.4-2.8-1.4s1.7-3 3.3-4.4c-1.3-1.3-2-3.4-2-3.4s1.4-1.4 2.8-1.4c1.4 0 2.8 1.4 2.8 1.4s1.4-2.8 4.2-2.8c2.8 0 4.2 2.8 4.2 2.8z"></path></svg>
