@@ -14,12 +14,14 @@ import { Image, Hash, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateRelevantHashtags } from "@/ai/flows/generate-relevant-hashtags";
 import { Badge } from "./ui/badge";
+import { User } from "@/lib/data";
+
 
 const postSchema = z.object({
   content: z.string().min(1, { message: "পোস্ট খালি থাকতে পারে না।" }).max(280, { message: "পোস্ট ২৮০ অক্ষরের বেশি হতে পারে না।" }),
 });
 
-export function CreatePost() {
+export function CreatePost({ user }: { user: User }) {
   const [hashtags, setHashtags] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
@@ -81,8 +83,8 @@ export function CreatePost() {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="flex gap-4">
               <Avatar>
-                <AvatarImage src="https://picsum.photos/seed/user1/200" alt="আকাশ আহমেদ" />
-                <AvatarFallback>আআ</AvatarFallback>
+                <AvatarImage src={user.avatar} alt={user.name} />
+                <AvatarFallback>{user.name.substring(0, 2)}</AvatarFallback>
               </Avatar>
               <FormField
                 control={form.control}
