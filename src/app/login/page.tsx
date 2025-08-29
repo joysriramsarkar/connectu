@@ -4,14 +4,14 @@
 import { useState, useEffect } from 'react';
 import Link from "next/link";
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword, signInWithPopup, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup, signInAnonymously, onAuthStateChanged, RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Rss, User as UserIcon } from 'lucide-react';
+import { Loader2, Rss, User as UserIcon, Phone } from 'lucide-react';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -26,10 +26,17 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [anonymousLoading, setAnonymousLoading] = useState(false);
+  const [phoneLoading, setPhoneLoading] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
+  const [phoneAuthStep, setPhoneAuthStep] = useState<'enterPhone' | 'enterOtp'>('enterPhone');
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  
   const router = useRouter();
   const { toast } = useToast();
 
@@ -49,7 +56,17 @@ export default function LoginPage() {
     });
     return () => unsubscribe();
   }, [router, toast]);
-
+  
+  const setupRecaptcha = () => {
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        'size': 'invisible',
+        'callback': () => {
+          // reCAPTCHA solved, allow signInWithPhoneNumber.
+        }
+      });
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,6 +119,50 @@ export default function LoginPage() {
     }
   };
 
+  const handlePhoneSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPhoneLoading(true);
+    try {
+      setupRecaptcha();
+      const appVerifier = window.recaptchaVerifier;
+      const result = await signInWithPhoneNumber(auth, `+${phone}`, appVerifier);
+      setConfirmationResult(result);
+      setPhoneAuthStep('enterOtp');
+      toast({
+        title: 'OTP পাঠানো হয়েছে',
+        description: `আপনার ফোন নম্বর +${phone}-এ একটি OTP পাঠানো হয়েছে।`,
+      });
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: "destructive",
+        title: "ত্রুটি",
+        description: error.message || "OTP পাঠানো যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
+      });
+    } finally {
+      setPhoneLoading(false);
+    }
+  };
+
+  const handleOtpVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!confirmationResult) return;
+    setPhoneLoading(true);
+    try {
+      await confirmationResult.confirm(otp);
+      // Auth state change will handle redirect
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: "destructive",
+        title: "ত্রুটি",
+        description: error.message || "ভুল OTP। অনুগ্রহ করে আবার চেষ্টা করুন।",
+      });
+    } finally {
+      setPhoneLoading(false);
+    }
+  };
+
   if (!isClient) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
@@ -110,55 +171,97 @@ export default function LoginPage() {
     );
   }
 
-  const isAnyLoading = loading || googleLoading || anonymousLoading;
+  const isAnyLoading = loading || googleLoading || anonymousLoading || phoneLoading;
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
+      <div id="recaptcha-container"></div>
       <Card className="mx-auto max-w-sm w-full">
         <CardHeader className="text-center">
             <Rss className="h-12 w-12 mx-auto text-primary" />
           <CardTitle className="text-2xl">ConnectU-তে লগ ইন করুন</CardTitle>
           <CardDescription>
-            আপনার অ্যাকাউন্টে প্রবেশ করতে ইমেল এবং পাসওয়ার্ড লিখুন
+            {authMethod === 'email' ? 'আপনার অ্যাকাউন্টে প্রবেশ করতে ইমেল এবং পাসওয়ার্ড লিখুন' : 'আপনার ফোন নম্বর দিয়ে লগ ইন করুন'}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4">
-            <form onSubmit={handleLogin} className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="email">ইমেল</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="m@example.com"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isAnyLoading}
-                />
-              </div>
-              <div className="grid gap-2">
-                <div className="flex items-center">
-                  <Label htmlFor="password">পাসওয়ার্ড</Label>
-                  <Link href="#" className="ml-auto inline-block text-sm underline">
-                    পাসওয়ার্ড ভুলে গেছেন?
-                  </Link>
-                </div>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  required 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isAnyLoading}
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={isAnyLoading}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {loading ? "লগ ইন করা হচ্ছে..." : "লগ ইন"}
-              </Button>
-            </form>
-             <div className="relative">
+            {authMethod === 'email' ? (
+                <form onSubmit={handleLogin} className="grid gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="email">ইমেল</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="m@example.com"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={isAnyLoading}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <div className="flex items-center">
+                      <Label htmlFor="password">পাসওয়ার্ড</Label>
+                      <Link href="#" className="ml-auto inline-block text-sm underline">
+                        পাসওয়ার্ড ভুলে গেছেন?
+                      </Link>
+                    </div>
+                    <Input 
+                      id="password" 
+                      type="password" 
+                      required 
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={isAnyLoading}
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={isAnyLoading}>
+                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {loading ? "লগ ইন করা হচ্ছে..." : "লগ ইন"}
+                  </Button>
+                </form>
+            ) : phoneAuthStep === 'enterPhone' ? (
+                <form onSubmit={handlePhoneSignIn} className="grid gap-4">
+                    <div className="grid gap-2">
+                        <Label htmlFor="phone">ফোন নম্বর (দেশের কোড সহ)</Label>
+                        <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="8801712345678"
+                        required
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        disabled={isAnyLoading}
+                        />
+                    </div>
+                    <Button type="submit" className="w-full" disabled={isAnyLoading}>
+                        {phoneLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        {phoneLoading ? 'OTP পাঠানো হচ্ছে...' : 'OTP পাঠান'}
+                    </Button>
+                </form>
+            ) : (
+                <form onSubmit={handleOtpVerify} className="grid gap-4">
+                    <div className="grid gap-2">
+                        <Label htmlFor="otp">OTP</Label>
+                        <Input
+                        id="otp"
+                        type="text"
+                        placeholder="123456"
+                        required
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value)}
+                        disabled={isAnyLoading}
+                        />
+                    </div>
+                    <Button type="submit" className="w-full" disabled={isAnyLoading}>
+                        {phoneLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        {phoneLoading ? 'যাচাই করা হচ্ছে...' : 'যাচাই করুন ও লগইন করুন'}
+                    </Button>
+                </form>
+            )}
+
+            <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t" />
                 </div>
@@ -168,7 +271,19 @@ export default function LoginPage() {
                     </span>
                 </div>
             </div>
-             <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isAnyLoading}>
+
+            {authMethod === 'phone' ? (
+                <Button variant="outline" className="w-full" onClick={() => setAuthMethod('email')} disabled={isAnyLoading}>
+                    ইমেল দিয়ে লগইন করুন
+                </Button>
+            ) : (
+                 <Button variant="outline" className="w-full" onClick={() => { setAuthMethod('phone'); setPhoneAuthStep('enterPhone'); }} disabled={isAnyLoading}>
+                    <Phone className="mr-2 h-4 w-4" />
+                    ফোন দিয়ে লগইন করুন
+                </Button>
+            )}
+             
+            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isAnyLoading}>
                 {googleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2 h-4 w-4" />}
                 Google দিয়ে লগইন করুন
             </Button>
