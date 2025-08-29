@@ -141,18 +141,18 @@ export default function Home() {
           </CardHeader>
           <CardContent className="space-y-4">
             {suggestedUsers.length > 0 ? suggestedUsers.map(suggestedUser => (
-              <div key={suggestedUser.id} className="flex items-center justify-between">
-                <Link href={`/profile/${suggestedUser.id}`} className="flex items-center gap-3">
+              <div key={suggestedUser.id} className="flex items-center justify-between gap-2">
+                <Link href={`/profile/${suggestedUser.id}`} className="flex items-center gap-3 overflow-hidden">
                   <Avatar>
                     <AvatarImage src={suggestedUser.avatar} alt={suggestedUser.name} />
                     <AvatarFallback>{suggestedUser.name[0]}</AvatarFallback>
                   </Avatar>
-                  <div>
-                    <p className="font-semibold">{suggestedUser.name}</p>
-                    <p className="text-sm text-muted-foreground">@{suggestedUser.handle}</p>
+                  <div className="overflow-hidden">
+                    <p className="font-semibold truncate">{suggestedUser.name}</p>
+                    <p className="text-sm text-muted-foreground truncate">@{suggestedUser.handle}</p>
                   </div>
                 </Link>
-                <Button size="sm" variant="outline" onClick={() => router.push(`/profile/${suggestedUser.id}`)}>প্রোফাইল দেখুন</Button>
+                <Button size="sm" variant="outline" onClick={() => router.push(`/profile/${suggestedUser.id}`)} className="flex-shrink-0">প্রোফাইল দেখুন</Button>
               </div>
             )) : <p className="text-sm text-muted-foreground">কোনো পরামর্শ নেই।</p>}
           </CardContent>
@@ -161,5 +161,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
