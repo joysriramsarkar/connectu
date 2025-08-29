@@ -1,10 +1,10 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createUserWithEmailAndPassword, signInWithPopup, signInAnonymously } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithRedirect, getRedirectResult, signInAnonymously } from "firebase/auth";
 import { auth, googleProvider } from '@/lib/firebase';
 import { Button } from "@/components/ui/button";
 import {
@@ -42,6 +42,32 @@ export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
 
+   useEffect(() => {
+    const handleRedirectResult = async () => {
+      setGoogleLoading(true);
+      try {
+        const result = await getRedirectResult(auth);
+        if (result) {
+          toast({
+              title: "সফল!",
+              description: "আপনি Google দিয়ে সফলভাবে সাইন আপ করেছেন।",
+          });
+          router.push('/');
+        }
+      } catch (error: any) {
+        console.error("Google sign-in error after redirect:", error);
+        toast({
+            variant: "destructive",
+            title: "ত্রুটি",
+            description: error.message || "Google দিয়ে সাইন আপ করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
+        });
+      } finally {
+        setGoogleLoading(false);
+      }
+    };
+    handleRedirectResult();
+  }, [router, toast]);
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
@@ -75,12 +101,7 @@ export default function SignupPage() {
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     try {
-        await signInWithPopup(auth, googleProvider);
-        toast({
-            title: "সফল!",
-            description: "আপনি Google দিয়ে সফলভাবে সাইন আপ করেছেন।",
-        });
-        router.push('/');
+        await signInWithRedirect(auth, googleProvider);
     } catch (error: any) {
         console.error(error);
         toast({
@@ -88,7 +109,6 @@ export default function SignupPage() {
             title: "ত্রুটি",
             description: error.message || "Google দিয়ে সাইন আপ করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
         });
-    } finally {
         setGoogleLoading(false);
     }
   };
@@ -164,7 +184,8 @@ export default function SignupPage() {
                 />
               </div>
               <Button type="submit" className="w-full" disabled={isAnyLoading}>
-                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "অ্যাকাউন্ট তৈরি করুন"}
+                 {loading || (googleLoading && "অ্যাকাউন্ট তৈরি করা হচ্ছে...")}
+                 {!loading && !googleLoading && "অ্যাকাউন্ট তৈরি করুন"}
               </Button>
             </form>
              <div className="relative">
@@ -197,5 +218,3 @@ export default function SignupPage() {
     </div>
   );
 }
-
-    
