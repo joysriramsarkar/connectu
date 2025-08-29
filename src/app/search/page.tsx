@@ -48,28 +48,17 @@ export default function SearchPage() {
             setHasSearched(true);
 
             try {
-                // Firestore does not support case-insensitive searches natively.
-                // A common approach is to search for a range.
                 const searchTermLower = searchTerm.toLowerCase();
-                const searchTermUpper = searchTerm.toUpperCase();
-                
-                const usersQuery = query(collection(db, 'users'), 
-                    or(
-                        where('name', '>=', searchTerm),
-                        where('name', '<=', searchTerm + '\uf8ff'),
-                        where('handle', '>=', searchTerm),
-                        where('handle', '<=', searchTerm + '\uf8ff')
-                    )
-                );
-                const usersSnapshot = await getDocs(usersQuery);
-                const usersData = usersSnapshot.docs
-                  .map(doc => ({ id: doc.id, ...doc.data() }) as User)
-                  .filter(user => 
-                      user.name.toLowerCase().includes(searchTermLower) || 
-                      user.handle.toLowerCase().includes(searchTermLower)
-                  );
-                setUsers(usersData);
 
+                // Fetch all users and filter client-side to avoid complex query
+                const usersQuery = query(collection(db, 'users'));
+                const usersSnapshot = await getDocs(usersQuery);
+                const allUsers = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as User);
+                const filteredUsers = allUsers.filter(user => 
+                    user.name.toLowerCase().includes(searchTermLower) || 
+                    user.handle.toLowerCase().includes(searchTermLower)
+                );
+                setUsers(filteredUsers);
 
                 // Search for posts (simple content search)
                 const postsQuery = query(collection(db, 'posts'), 
@@ -78,11 +67,13 @@ export default function SearchPage() {
                 );
                 const postsSnapshot = await getDocs(postsQuery);
                 const postsData = await Promise.all(
-                    postsSnapshot.docs.map(async (doc) => {
-                        const postData = doc.data();
-                        const author = await getUserProfile(postData.authorId);
-                        return { id: doc.id, ...postData, author } as Post;
-                    })
+                    postsSnapshot.docs
+                        .filter(doc => doc.data().content.toLowerCase().includes(searchTermLower))
+                        .map(async (doc) => {
+                            const postData = doc.data();
+                            const author = await getUserProfile(postData.authorId);
+                            return { id: doc.id, ...postData, author } as Post;
+                        })
                 );
                 setPosts(postsData.filter(p => p.author));
 
