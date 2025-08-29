@@ -26,11 +26,12 @@ async function getUserProfile(userId: string): Promise<AppUser | null> {
 }
 
 async function createUserProfile(firebaseUser: FirebaseUser): Promise<AppUser> {
+    const isAnonymous = firebaseUser.isAnonymous;
     const newUser: AppUser = {
         id: firebaseUser.uid,
-        name: firebaseUser.displayName || 'New User',
-        handle: firebaseUser.email?.split('@')[0] || `user${Date.now()}`,
-        avatar: firebaseUser.photoURL || `https://picsum.photos/seed/${firebaseUser.uid}/200`,
+        name: isAnonymous ? 'বেনামী ব্যবহারকারী' : firebaseUser.displayName || 'New User',
+        handle: isAnonymous ? `guest${Date.now()}` : firebaseUser.email?.split('@')[0] || `user${Date.now()}`,
+        avatar: isAnonymous ? `https://picsum.photos/seed/guest${firebaseUser.uid}/200` : firebaseUser.photoURL || `https://picsum.photos/seed/${firebaseUser.uid}/200`,
         coverPhoto: `https://picsum.photos/seed/cover${firebaseUser.uid}/1200/400`,
         bio: 'Welcome to ConnectU!',
         followers: 0,
@@ -158,3 +159,5 @@ export default function Home() {
     </div>
   );
 }
+
+    

@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from 'react';
-import { notFound } from "next/navigation";
+import { notFound, useParams } from "next/navigation";
 import Image from "next/image";
 import { doc, getDoc, collection, query, where, getDocs, orderBy, writeBatch, increment, onSnapshot, DocumentData, deleteDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -16,17 +16,11 @@ import { User as UserIcon, Loader2 } from "lucide-react";
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
-async function getUserProfile(userId: string): Promise<User | null> {
-  if(!userId) return null;
-  const userDocRef = doc(db, "users", userId);
-  const userDoc = await getDoc(userDocRef);
-  if (userDoc.exists()) {
-    return { id: userDoc.id, ...userDoc.data() } as User;
-  }
-  return null;
-}
 
-export default function ProfilePage({ params }: { params: { id: string } }) {
+export default function ProfilePage() {
+  const params = useParams();
+  const userId = params.id as string;
+
   const [user, setUser] = useState<User | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,7 +37,6 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
   }, []);
   
   useEffect(() => {
-    const userId = params.id;
     if (!userId) return;
     setLoading(true);
     const unsub = onSnapshot(doc(db, "users", userId), (doc) => {
@@ -55,12 +48,11 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
         setLoading(false);
     });
     return () => unsub();
-  }, [params.id]);
+  }, [userId]);
 
 
-  const fetchPosts = useCallback(async () => {
-    const userId = params.id;
-    if(!user || !userId) return;
+  const fetchPosts = useCallback(async (author: User) => {
+    if(!author || !userId) return;
     setPostsLoading(true);
     const postsQuery = query(
       collection(db, "posts"), 
@@ -68,20 +60,16 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
       orderBy("createdAt", "desc")
     );
     const querySnapshot = await getDocs(postsQuery);
-    const postsData = await Promise.all(
-        querySnapshot.docs.map(async (doc) => {
-            const postData = doc.data();
-            // Since we are on the author's profile page, we can use the user state
-            return { id: doc.id, ...postData, author: user } as Post;
-        })
-    );
+    const postsData = querySnapshot.docs.map((doc) => {
+        return { id: doc.id, ...doc.data(), author: author } as Post;
+    });
     setPosts(postsData);
     setPostsLoading(false);
-  }, [params.id, user]);
+  }, [userId]);
 
   useEffect(() => {
     if(user) {
-        fetchPosts();
+        fetchPosts(user);
     }
   }, [user, fetchPosts]);
 
@@ -215,3 +203,5 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
     </div>
   );
 }
+
+    

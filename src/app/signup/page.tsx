@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createUserWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithPopup, signInAnonymously } from "firebase/auth";
 import { auth, googleProvider } from '@/lib/firebase';
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Rss } from 'lucide-react';
+import { Loader2, Rss, User as UserIcon } from 'lucide-react';
 
 
 // A simple SVG for the Google icon
@@ -38,6 +38,7 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [anonymousLoading, setAnonymousLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -92,6 +93,28 @@ export default function SignupPage() {
     }
   };
 
+  const handleAnonymousSignIn = async () => {
+    setAnonymousLoading(true);
+    try {
+        await signInAnonymously(auth);
+        toast({
+            title: "সফল!",
+            description: "আপনি বেনামে সফলভাবে লগ ইন করেছেন।",
+        });
+        router.push('/');
+    } catch (error: any) {
+        console.error(error);
+        toast({
+            variant: "destructive",
+            title: "ত্রুটি",
+            description: error.message || "বেনামে লগইন করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
+        });
+    } finally {
+        setAnonymousLoading(false);
+    }
+  };
+
+  const isAnyLoading = loading || googleLoading || anonymousLoading;
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
@@ -115,7 +138,7 @@ export default function SignupPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  disabled={loading || googleLoading}
+                  disabled={isAnyLoading}
                 />
               </div>
               <div className="grid gap-2">
@@ -126,7 +149,7 @@ export default function SignupPage() {
                   required 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading || googleLoading}
+                  disabled={isAnyLoading}
                 />
               </div>
               <div className="grid gap-2">
@@ -137,10 +160,10 @@ export default function SignupPage() {
                   required 
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  disabled={loading || googleLoading}
+                  disabled={isAnyLoading}
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={loading || googleLoading}>
+              <Button type="submit" className="w-full" disabled={isAnyLoading}>
                 {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "অ্যাকাউন্ট তৈরি করুন"}
               </Button>
             </form>
@@ -154,9 +177,13 @@ export default function SignupPage() {
                     </span>
                 </div>
             </div>
-             <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={loading || googleLoading}>
+             <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isAnyLoading}>
                  {googleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2 h-4 w-4" />}
                 Google দিয়ে সাইন আপ করুন
+            </Button>
+            <Button variant="secondary" className="w-full" onClick={handleAnonymousSignIn} disabled={isAnyLoading}>
+                {anonymousLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserIcon className="mr-2 h-4 w-4" />}
+                অতিথি হিসেবে চালিয়ে যান
             </Button>
           </div>
           <div className="mt-4 text-center text-sm">
@@ -170,3 +197,5 @@ export default function SignupPage() {
     </div>
   );
 }
+
+    
