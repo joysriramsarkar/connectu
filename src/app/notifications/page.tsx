@@ -87,17 +87,20 @@ export default function NotificationsPage() {
         setLoading(true);
         const q = query(
             collection(db, "notifications"),
-            where("recipientId", "==", currentUser.uid),
-            orderBy("createdAt", "desc")
+            where("recipientId", "==", currentUser.uid)
         );
 
         const unsubscribe = onSnapshot(q, async (snapshot) => {
             const notifs = await Promise.all(snapshot.docs.map(async (doc) => {
                 const data = doc.data();
                 const sender = await getUserProfile(data.senderId);
-                return { id: doc.id, ...data, sender } as NotificationType;
+                return { id: doc.id, ...data, sender, createdAt: data.createdAt } as NotificationType;
             }));
-            setNotifications(notifs.filter(n => n.sender));
+            const sortedNotifs = notifs.filter(n => n.sender).sort((a,b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+            setNotifications(sortedNotifs);
+            setLoading(false);
+        }, (error) => {
+            console.error("Error fetching notifications:", error);
             setLoading(false);
         });
 
@@ -148,7 +151,7 @@ export default function NotificationsPage() {
                                <div>
                                     <NotificationMessage notification={notification} />
                                     <p className="text-sm text-muted-foreground mt-1">
-                                        {formatDistanceToNow(notification.createdAt.toDate(), { addSuffix: true, locale: bn })}
+                                        {notification.createdAt ? formatDistanceToNow(notification.createdAt.toDate(), { addSuffix: true, locale: bn }) : ''}
                                     </p>
                                </div>
                            </div>
