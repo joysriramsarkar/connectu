@@ -52,12 +52,12 @@ const MainNav = ({ userId, loading, notificationCount }: { userId: string | null
             loading && label === t("profile") && "cursor-not-allowed opacity-50"
           )}
         >
-          <Icon className="h-6 w-6" />
+          {Icon && <Icon className="h-6 w-6" />}
           <span className="hidden xl:inline">{label}</span>
           {label === t('notifications') && notificationCount > 0 && (
             <>
               <span className="absolute left-8 top-1 hidden xl:flex h-5 w-5 text-xs bg-red-500 text-white rounded-full items-center justify-center">
-                  {(notificationCount > 9 ? `9+` : notificationCount.toLocaleString(locale as string))}
+                  {(notificationCount > 9 ? `৯+` : notificationCount.toLocaleString('bn-BD'))}
               </span>
               <span className="absolute left-2 top-1 xl:hidden h-2 w-2 bg-red-500 rounded-full"></span>
             </>
@@ -139,7 +139,9 @@ export function Sidebar() {
             </div>
         </div>
         <MainNav userId={firebaseUser?.uid || null} loading={loading} notificationCount={notificationCount} />
+        
         <div className="flex-grow"></div>
+        
         {appUser && (
             <Dialog open={isPostDialogOpen} onOpenChange={setIsPostDialogOpen}>
               <DialogTrigger asChild>
