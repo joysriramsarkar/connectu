@@ -140,8 +140,6 @@ export function Sidebar() {
         </div>
         <MainNav userId={firebaseUser?.uid || null} loading={loading} notificationCount={notificationCount} />
         
-        <div className="flex-grow"></div>
-        
         {appUser && (
             <Dialog open={isPostDialogOpen} onOpenChange={setIsPostDialogOpen}>
               <DialogTrigger asChild>
@@ -165,7 +163,9 @@ export function Sidebar() {
             </Dialog>
         )}
 
-        <div className="mt-auto flex flex-col gap-4">
+        <div className="flex-grow"></div>
+
+        <div className="flex flex-col gap-4">
             {loading ? (
                 <div className="flex items-center justify-center py-2">
                     <Loader2 className="h-6 w-6 animate-spin" />
