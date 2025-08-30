@@ -15,6 +15,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { CreatePost } from "./create-post";
 import { User as AppUser } from "@/lib/data";
 import { doc, getDoc, collection, query, where, onSnapshot } from "firebase/firestore";
+import { useI18n } from "@/context/i18n";
+import { LanguageSwitcher } from "./language-switcher";
 
 async function getUserProfile(userId: string): Promise<AppUser | null> {
   if (!userId) return null;
@@ -28,13 +30,14 @@ async function getUserProfile(userId: string): Promise<AppUser | null> {
 
 const MainNav = ({ userId, loading, notificationCount }: { userId: string | null, loading: boolean, notificationCount: number }) => {
   const pathname = usePathname();
+  const { t, locale } = useI18n();
   
   const navItems = [
-    { href: "/", label: "হোম", icon: Home },
-    { href: "/search", label: "অনুসন্ধান", icon: Search },
-    { href: "/messages", label: "বার্তা", icon: MessageSquare },
-    { href: "/notifications", label: "বিজ্ঞপ্তি", icon: Bell },
-    { href: loading ? "#" : (userId ? `/profile/${userId}` : "/login"), label: "প্রোফাইল", icon: User },
+    { href: "/", label: t("home"), icon: Home },
+    { href: "/search", label: t("search"), icon: Search },
+    { href: "/messages", label: t("messages"), icon: MessageSquare },
+    { href: "/notifications", label: t("notifications"), icon: Bell },
+    { href: loading ? "#" : (userId ? `/profile/${userId}` : "/login"), label: t("profile"), icon: User },
   ];
 
   return (
@@ -46,15 +49,15 @@ const MainNav = ({ userId, loading, notificationCount }: { userId: string | null
           className={cn(
             "flex items-center gap-3 rounded-full px-4 py-2 text-lg transition-colors hover:bg-accent/50 w-full relative",
             pathname === href && !loading ? "font-bold" : "font-normal",
-            loading && label === "প্রোফাইল" && "cursor-not-allowed opacity-50"
+            loading && label === t("profile") && "cursor-not-allowed opacity-50"
           )}
         >
           <Icon className="h-6 w-6" />
           <span className="hidden xl:inline">{label}</span>
-          {label === 'বিজ্ঞপ্তি' && notificationCount > 0 && (
+          {label === t('notifications') && notificationCount > 0 && (
             <>
               <span className="absolute left-8 top-1 hidden xl:flex h-5 w-5 text-xs bg-red-500 text-white rounded-full items-center justify-center">
-                  {(notificationCount > 9 ? '৯+' : notificationCount.toLocaleString('bn-BD'))}
+                  {(notificationCount > 9 ? `9+` : notificationCount.toLocaleString(locale as string))}
               </span>
               <span className="absolute left-2 top-1 xl:hidden h-2 w-2 bg-red-500 rounded-full"></span>
             </>
@@ -68,6 +71,7 @@ const MainNav = ({ userId, loading, notificationCount }: { userId: string | null
 export function Sidebar() {
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useI18n();
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [appUser, setAppUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -108,15 +112,15 @@ export function Sidebar() {
       await auth.signOut();
       router.push('/login');
       toast({
-        title: "সাফল্য!",
-        description: "আপনি সফলভাবে লগ আউট করেছেন।",
+        title: t("logout_success_title"),
+        description: t("logout_success_description"),
       });
     } catch (error) {
       console.error("Error signing out: ", error);
       toast({
         variant: "destructive",
-        title: "ত্রুটি",
-        description: "লগ আউট করার সময় একটি সমস্যা হয়েছে।",
+        title: t("error_title"),
+        description: t("logout_error_description"),
       });
     }
   };
@@ -125,10 +129,15 @@ export function Sidebar() {
   return (
     <aside className="sticky top-0 h-screen md:w-20 xl:w-64 flex-col justify-between p-4 border-r border-border hidden md:flex">
       <div className="flex flex-col h-full">
-        <Link href="/" className="mb-4 flex items-center gap-2 justify-center xl:justify-start">
-            <Rss className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl font-bold hidden xl:inline">ConnectU</h1>
-        </Link>
+        <div className="mb-4 flex items-center gap-2 justify-between xl:justify-start">
+            <Link href="/" className="flex items-center gap-2">
+                <Rss className="h-8 w-8 text-primary" />
+                <h1 className="text-2xl font-bold hidden xl:inline">ConnectU</h1>
+            </Link>
+            <div className="hidden xl:block">
+                <LanguageSwitcher />
+            </div>
+        </div>
         <MainNav userId={firebaseUser?.uid || null} loading={loading} notificationCount={notificationCount} />
         <div className="flex-grow"></div>
         {appUser && (
@@ -136,7 +145,7 @@ export function Sidebar() {
               <DialogTrigger asChild>
                 <div className="mt-4">
                   <Button className="w-full rounded-full py-6 text-lg hidden xl:flex items-center justify-center">
-                    পোস্ট করুন
+                    {t('post_button')}
                   </Button>
                   <div className="xl:hidden">
                     <Button size="icon" className="w-12 h-12 rounded-full">
@@ -147,7 +156,7 @@ export function Sidebar() {
               </DialogTrigger>
               <DialogContent className="sm:max-w-[625px]">
                 <DialogHeader>
-                  <DialogTitle>নতুন পোস্ট তৈরি করুন</DialogTitle>
+                  <DialogTitle>{t('create_new_post')}</DialogTitle>
                 </DialogHeader>
                 <CreatePost user={appUser} onPostCreated={() => setIsPostDialogOpen(false)} />
               </DialogContent>
@@ -163,7 +172,7 @@ export function Sidebar() {
                 <>
                     <Button variant="ghost" onClick={handleLogout} className="flex items-center gap-3 justify-center xl:justify-start rounded-full px-4 py-2 text-lg">
                         <LogOut className="h-6 w-6" />
-                        <span className="hidden xl:inline">লগ আউট</span>
+                        <span className="hidden xl:inline">{t('logout')}</span>
                     </Button>
                     <Link href={`/profile/${firebaseUser.uid}`} className="flex items-center gap-3 justify-center xl:justify-start">
                       <Avatar>

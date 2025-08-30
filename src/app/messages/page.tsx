@@ -25,7 +25,8 @@ import {
 } from "firebase/firestore";
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { format, formatDistanceToNow } from 'date-fns';
-import { bn } from 'date-fns/locale';
+import { bn, enUS } from 'date-fns/locale';
+import { useI18n } from "@/context/i18n";
 
 async function getUserProfile(userId: string): Promise<User | null> {
   if (!userId) return null;
@@ -38,6 +39,7 @@ async function getUserProfile(userId: string): Promise<User | null> {
 }
 
 export default function MessagesPage() {
+  const { t, locale } = useI18n();
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -131,22 +133,22 @@ export default function MessagesPage() {
   
   const formatTimestamp = (timestamp: any) => {
     if (!timestamp?.toDate) return '';
-    return format(timestamp.toDate(), 'p', { locale: bn });
+    return format(timestamp.toDate(), 'p', { locale: locale === 'bn' ? bn : enUS });
   }
   
   const formatConvTimestamp = (timestamp: any) => {
      if (!timestamp?.toDate) return '';
-     return formatDistanceToNow(timestamp.toDate(), { addSuffix: true, locale: bn });
+     return formatDistanceToNow(timestamp.toDate(), { addSuffix: true, locale: locale === 'bn' ? bn : enUS });
   }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 h-screen max-h-screen">
       <div className={cn("border-r border-border flex flex-col", selectedConversation && "hidden md:flex")}>
         <div className="p-4 border-b border-border">
-          <h1 className="text-2xl font-bold">বার্তা</h1>
+          <h1 className="text-2xl font-bold">{t('messages')}</h1>
           <div className="relative mt-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input placeholder="অনুসন্ধান করুন" className="pl-10" />
+            <Input placeholder={t('search_placeholder')} className="pl-10" />
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">
@@ -207,7 +209,7 @@ export default function MessagesPage() {
             </div>
             <form onSubmit={handleSendMessage} className="p-4 border-t border-border">
               <div className="relative">
-                <Input placeholder="একটি বার্তা লিখুন..." className="pr-12 h-12" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} disabled={sending} />
+                <Input placeholder={t('type_a_message')} className="pr-12 h-12" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} disabled={sending} />
                 <Button size="icon" className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9" type="submit" disabled={!newMessage.trim() || sending}>
                   {sending ? <Loader2 className="h-4 w-4 animate-spin"/> : <Send />}
                 </Button>
@@ -217,8 +219,8 @@ export default function MessagesPage() {
         ) : (
            <div className="flex-col items-center justify-center h-full text-center hidden md:flex">
              <MessageSquare className="w-24 h-24 text-muted-foreground/50"/>
-             <h2 className="text-2xl font-bold mt-4">আপনার বার্তা</h2>
-             <p className="text-muted-foreground">একটি কথোপকথন নির্বাচন করে কথা বলা শুরু করুন।</p>
+             <h2 className="text-2xl font-bold mt-4">{t('your_messages')}</h2>
+             <p className="text-muted-foreground">{t('select_conversation_to_chat')}</p>
            </div>
         )}
       </div>

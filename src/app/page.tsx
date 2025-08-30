@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Loader2 } from 'lucide-react';
+import { useI18n } from '@/context/i18n';
 
 async function getUserProfile(userId: string): Promise<AppUser | null> {
   if (!userId) return null;
@@ -29,7 +30,7 @@ async function createUserProfile(firebaseUser: FirebaseUser): Promise<AppUser> {
     const isAnonymous = firebaseUser.isAnonymous;
     const newUser: AppUser = {
         id: firebaseUser.uid,
-        name: isAnonymous ? 'বেনামী ব্যবহারকারী' : firebaseUser.displayName || 'New User',
+        name: isAnonymous ? 'Anonymous User' : firebaseUser.displayName || 'New User',
         handle: isAnonymous ? `guest${Date.now()}` : firebaseUser.email?.split('@')[0] || `user${Date.now()}`,
         avatar: isAnonymous ? `https://picsum.photos/seed/guest${firebaseUser.uid}/200` : firebaseUser.photoURL || `https://picsum.photos/seed/${firebaseUser.uid}/200`,
         coverPhoto: `https://picsum.photos/seed/cover${firebaseUser.uid}/1200/400`,
@@ -49,6 +50,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [postsLoading, setPostsLoading] = useState(true);
   const router = useRouter();
+  const { t } = useI18n();
 
   const fetchPosts = useCallback(async () => {
     setPostsLoading(true);
@@ -128,7 +130,7 @@ export default function Home() {
           ) : (
              <Card>
                 <CardContent className="p-6 text-center text-muted-foreground">
-                    এখনও কোনো পোস্ট নেই। প্রথম পোস্টটি আপনিই করুন!
+                    {t('no_posts_yet_feed')}
                 </CardContent>
              </Card>
           )}
@@ -137,7 +139,7 @@ export default function Home() {
       <aside className="hidden md:block md:col-span-1 space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>আপনার জন্য পরামর্শ</CardTitle>
+            <CardTitle>{t('suggestions_for_you')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {suggestedUsers.length > 0 ? suggestedUsers.map(suggestedUser => (
@@ -153,7 +155,7 @@ export default function Home() {
                   </div>
                 </Link>
               </div>
-            )) : <p className="text-sm text-muted-foreground">কোনো পরামর্শ নেই।</p>}
+            )) : <p className="text-sm text-muted-foreground">{t('no_suggestions')}</p>}
           </CardContent>
         </Card>
       </aside>

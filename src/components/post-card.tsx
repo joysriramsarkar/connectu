@@ -11,16 +11,17 @@ import { Button } from '@/components/ui/button';
 import { Heart, MessageCircle, Send, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
-import { bn } from 'date-fns/locale';
+import { bn, enUS } from 'date-fns/locale';
 import { auth, db } from '@/lib/firebase';
 import { doc, setDoc, deleteDoc, increment, writeBatch, onSnapshot, collection, serverTimestamp } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { CommentSheet } from './comment-sheet';
 import { User as FirebaseUser } from 'firebase/auth';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { useI18n } from '@/context/i18n';
 
 const FacebookIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 512 512" {...props}><path fill="#0866FF" d="M512,256c0,-141.4 -114.6,-256 -256,-256c-141.4,0 -256,114.6 -256,256c0,127.8 93.6,233.7 216,252.9l0,-178.9l-65,-0l0,-74l65,-0l0,-56.4c0,-64.5 38.2,-100.2 97.4,-100.2c28.1,0 52.1,2.1 59.1,3.1l0,66.2l-39.1,0c-31.3,0 -37.4,14.9 -37.4,36.8l0,47.9l73.6,0l-9.6,74l-64,0l0,178.9c122.4,-19.2 216,-125.1 216,-252.9Z" /></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 512 512" {...props}><path fill="#0866FF" d="M512 256C512 114.6 397.4 0 256 0S0 114.6 0 256C0 376 82.7 476.8 194.2 504.5V334.2H137.4V256h56.8v-60.3c0-56.1 33.4-87.2 84.5-87.2c24.6 0 51.3 4.4 51.3 4.4v68.5h-39.3c-27.2 0-35.6 16.3-35.6 34.5V256h76.2l-12.2 78.2h-64V504.5C429.3 476.8 512 376 512 256z"/></svg>
 );
 const TwitterIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 512 512" {...props}><path fill="#000000" d="M389.2 48h70.6L305.6 224.2 487 464H345L233.7 318.6 106.5 464H35.8L200.7 275.5 26.8 48H172.4L272.9 180.9 389.2 48zM364.4 421.8h39.1L151.1 88h-42L364.4 421.8z" /></svg>
@@ -37,6 +38,7 @@ interface PostCardProps {
 
 export function PostCard({ post, user }: PostCardProps) {
   const { toast } = useToast();
+  const { t, locale } = useI18n();
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likes || 0);
   const [commentCount, setCommentCount] = useState(post.comments || 0);
@@ -104,8 +106,8 @@ export function PostCard({ post, user }: PostCardProps) {
       console.error("Error toggling like: ", error);
       toast({
         variant: "destructive",
-        title: "ত্রুটি",
-        description: "লাইক করার সময় একটি সমস্যা হয়েছে।",
+        title: t('error_title'),
+        description: t('like_error'),
       });
     } finally {
       setLikeLoading(false);
@@ -130,8 +132,8 @@ export function PostCard({ post, user }: PostCardProps) {
       case 'copy':
         navigator.clipboard.writeText(postUrl);
         toast({
-          title: "লিঙ্ক কপি হয়েছে",
-          description: "পোস্টের লিঙ্ক আপনার ক্লিপবোর্ডে কপি করা হয়েছে।",
+          title: t('copy_link'),
+          description: t('copy_link_description'),
         });
         return;
     }
@@ -139,7 +141,7 @@ export function PostCard({ post, user }: PostCardProps) {
     window.open(shareUrl, '_blank', 'noopener,noreferrer');
   };
 
-  const formattedDate = post.createdAt?.toDate ? formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true, locale: bn }) : 'কিছুক্ষণ আগে';
+  const formattedDate = post.createdAt?.toDate ? formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true, locale: locale === 'bn' ? bn : enUS }) : t('a_moment_ago');
 
   if (!post.author) {
     return (
@@ -191,11 +193,11 @@ export function PostCard({ post, user }: PostCardProps) {
         <div className="flex justify-start gap-4 text-muted-foreground">
           <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={handleLikeToggle} disabled={!user || likeLoading}>
             <Heart className={cn("h-5 w-5", isLiked && 'fill-red-500 text-red-500')} />
-            <span>{(likeCount || 0).toLocaleString('bn-BD')}</span>
+            <span>{(likeCount || 0).toLocaleString(locale as string)}</span>
           </Button>
           <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={() => setIsCommentSheetOpen(true)} disabled={!user}>
             <MessageCircle className="h-5 w-5" />
-            <span>{(commentCount || 0).toLocaleString('bn-BD')}</span>
+            <span>{(commentCount || 0).toLocaleString(locale as string)}</span>
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -212,7 +214,7 @@ export function PostCard({ post, user }: PostCardProps) {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => handleShare('copy')}>
                     <Copy className="mr-2 h-4 w-4" />
-                    <span>কপি</span>
+                    <span>{t('copy')}</span>
                 </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -223,5 +225,3 @@ export function PostCard({ post, user }: PostCardProps) {
     </>
   );
 }
-
-    

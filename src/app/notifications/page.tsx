@@ -11,9 +11,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Bell, Heart, MessageCircle, User as UserIcon } from "lucide-react";
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
-import { bn } from 'date-fns/locale';
+import { bn, enUS } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
+import { useI18n } from '@/context/i18n';
 
 async function getUserProfile(userId: string): Promise<User | null> {
     if (!userId) return null;
@@ -35,12 +36,13 @@ const NotificationIcon = ({ type }: { type: NotificationType['type'] }) => {
 }
 
 const NotificationMessage = ({ notification }: { notification: NotificationType }) => {
+    const { t } = useI18n();
     switch (notification.type) {
         case 'like':
             return (
                 <p>
                     <Link href={`/profile/${notification.sender.id}`} onClick={(e) => e.stopPropagation()} className="font-bold hover:underline">{notification.sender.name}</Link>
-                    {' আপনার পোস্টে একটি লাইক দিয়েছেন: "'}
+                    {' '}{t('liked_your_post')}{' "'}
                     <span className="italic">{notification.postContent?.substring(0, 30)}...</span>"
                 </p>
             );
@@ -48,7 +50,7 @@ const NotificationMessage = ({ notification }: { notification: NotificationType 
             return (
                 <p>
                     <Link href={`/profile/${notification.sender.id}`} onClick={(e) => e.stopPropagation()} className="font-bold hover:underline">{notification.sender.name}</Link>
-                    {' আপনার পোস্টে একটি মন্তব্য করেছেন: "'}
+                    {' '}{t('commented_on_your_post')}{' "'}
                     <span className="italic">{notification.postContent?.substring(0, 30)}...</span>"
                 </p>
             );
@@ -56,17 +58,18 @@ const NotificationMessage = ({ notification }: { notification: NotificationType 
             return (
                 <p>
                     <Link href={`/profile/${notification.sender.id}`} onClick={(e) => e.stopPropagation()} className="font-bold hover:underline">{notification.sender.name}</Link>
-                    {' আপনাকে অনুসরণ করা শুরু করেছেন।'}
+                    {' '}{t('started_following_you')}
                 </p>
             );
         default:
-            return <p>নতুন নোটিফিকেশন</p>;
+            return <p>{t('new_notification')}</p>;
     }
 }
 
 
 export default function NotificationsPage() {
     const router = useRouter();
+    const { t, locale } = useI18n();
     const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
     const [notifications, setNotifications] = useState<NotificationType[]>([]);
     const [loading, setLoading] = useState(true);
@@ -129,7 +132,7 @@ export default function NotificationsPage() {
 
   return (
     <div className="p-4 md:p-6">
-      <h1 className="text-2xl font-bold mb-6">বিজ্ঞপ্তিসমূহ</h1>
+      <h1 className="text-2xl font-bold mb-6">{t('notifications')}</h1>
       {notifications.length > 0 ? (
         <div className="space-y-4">
             {notifications.map(notification => (
@@ -149,7 +152,7 @@ export default function NotificationsPage() {
                                <div>
                                     <NotificationMessage notification={notification} />
                                     <p className="text-sm text-muted-foreground mt-1">
-                                        {notification.createdAt ? formatDistanceToNow(notification.createdAt.toDate(), { addSuffix: true, locale: bn }) : ''}
+                                        {notification.createdAt ? formatDistanceToNow(notification.createdAt.toDate(), { addSuffix: true, locale: locale === 'bn' ? bn : enUS }) : ''}
                                     </p>
                                </div>
                            </div>
@@ -162,8 +165,8 @@ export default function NotificationsPage() {
         <Card>
             <CardContent className="flex flex-col items-center justify-center text-center p-16 text-muted-foreground">
                 <Bell className="w-16 h-16 mb-4" />
-                <h2 className="text-xl font-semibold">এখনও কোনো বিজ্ঞপ্তি নেই</h2>
-                <p className="mt-2">আপনার নতুন কোনো নোটিফিকেশন থাকলে এখানে দেখতে পাবেন।</p>
+                <h2 className="text-xl font-semibold">{t('no_notifications_yet')}</h2>
+                <p className="mt-2">{t('new_notifications_will_appear_here')}</p>
             </CardContent>
         </Card>
       )}

@@ -10,6 +10,7 @@ import { PostCard } from "@/components/post-card";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { Button } from '@/components/ui/button';
+import { useI18n } from '@/context/i18n';
 
 async function getUserProfile(userId: string): Promise<User | null> {
     if (!userId) return null;
@@ -24,6 +25,7 @@ async function getUserProfile(userId: string): Promise<User | null> {
 export default function PostPage() {
     const params = useParams();
     const router = useRouter();
+    const { t } = useI18n();
     const postId = params.id as string;
     const [user] = useAuthState(auth);
     const [post, setPost] = useState<Post | null>(null);
@@ -69,7 +71,7 @@ export default function PostPage() {
     return (
         <div className="p-4 md:p-6 max-w-2xl mx-auto">
              <Button variant="ghost" onClick={() => router.back()} className="mb-4">
-                <ArrowLeft className="mr-2 h-4 w-4" /> ফিরে যান
+                <ArrowLeft className="mr-2 h-4 w-4" /> {t('back_button')}
             </Button>
             <PostCard post={post} user={user} />
         </div>

@@ -16,12 +16,14 @@ import { User as UserIcon, Loader2, MessageSquare } from "lucide-react";
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
+import { useI18n } from '@/context/i18n';
 
 
 export default function ProfilePage() {
   const params = useParams();
   const router = useRouter();
   const userId = params.id as string;
+  const { t, locale } = useI18n();
 
   const [user, setUser] = useState<User | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -165,7 +167,7 @@ export default function ProfilePage() {
   return (
     <div>
       <div className="relative h-48 md:h-64 w-full">
-        <Image src={user.coverPhoto} alt={`${user.name} এর কভার ফটো`} fill className="object-cover" />
+        <Image src={user.coverPhoto} alt={`${user.name}'s cover photo`} fill className="object-cover" />
       </div>
       <div className="p-4 md:p-6">
         <div className="flex justify-between items-start">
@@ -177,7 +179,7 @@ export default function ProfilePage() {
           </div>
           <div className="flex gap-2">
             {currentUser?.uid === user.id ? (
-              <Button variant="outline" onClick={() => router.push('/profile/edit')}>প্রোফাইল সম্পাদনা করুন</Button>
+              <Button variant="outline" onClick={() => router.push('/profile/edit')}>{t('edit_profile')}</Button>
             ) : (
               currentUser && (
                 <>
@@ -185,7 +187,7 @@ export default function ProfilePage() {
                     <MessageSquare />
                 </Button>
                 <Button onClick={handleFollowToggle} disabled={followLoading}>
-                {followLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : isFollowing ? 'অনুসরণ করছেন' : 'অনুসরণ করুন'}
+                {followLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : isFollowing ? t('following_button') : t('follow')}
                 </Button>
                 </>
               )
@@ -203,11 +205,11 @@ export default function ProfilePage() {
         <div className="flex items-center gap-4 mt-4 text-muted-foreground">
             <div className="flex items-center gap-1">
                 <UserIcon className="w-4 h-4" />
-                <span><span className="font-bold text-foreground">{user.following?.toLocaleString('bn-BD') || 0}</span> অনুসরণ করছেন</span>
+                <span><span className="font-bold text-foreground">{user.following?.toLocaleString(locale as string) || 0}</span> {t('following_stat')}</span>
             </div>
              <div className="flex items-center gap-1">
                 <UserIcon className="w-4 h-4" />
-                <span><span className="font-bold text-foreground">{user.followers?.toLocaleString('bn-BD') || 0}</span> অনুসরণকারী</span>
+                <span><span className="font-bold text-foreground">{user.followers?.toLocaleString(locale as string) || 0}</span> {t('followers_stat')}</span>
             </div>
         </div>
       </div>
@@ -215,9 +217,9 @@ export default function ProfilePage() {
       <div className="border-t border-border">
         <Tabs defaultValue="posts" className="w-full">
           <TabsList className="grid w-full grid-cols-3 bg-transparent border-b rounded-none px-4 md:px-6">
-            <TabsTrigger value="posts">পোস্টসমূহ</TabsTrigger>
-            <TabsTrigger value="replies">উত্তর</TabsTrigger>
-            <TabsTrigger value="likes">লাইকস</TabsTrigger>
+            <TabsTrigger value="posts">{t('posts')}</TabsTrigger>
+            <TabsTrigger value="replies">{t('replies')}</TabsTrigger>
+            <TabsTrigger value="likes">{t('likes')}</TabsTrigger>
           </TabsList>
           <TabsContent value="posts" className="p-4 md:p-6 space-y-4">
              {postsLoading ? (
@@ -228,18 +230,18 @@ export default function ProfilePage() {
                 posts.map(post => <PostCard key={post.id} post={post} user={currentUser}/>)
              ) : (
                 <div className="text-center py-16 text-muted-foreground">
-                    <p>এখনও কোনো পোস্ট নেই</p>
+                    <p>{t('no_posts_yet')}</p>
                 </div>
              )}
           </TabsContent>
            <TabsContent value="replies" className="p-4 md:p-6">
                 <div className="text-center py-16 text-muted-foreground">
-                    <p>এখনও কোনো উত্তর নেই</p>
+                    <p>{t('no_replies_yet')}</p>
                 </div>
            </TabsContent>
            <TabsContent value="likes" className="p-4 md:p-6">
                 <div className="text-center py-16 text-muted-foreground">
-                    <p>এখনও কোনো লাইক নেই</p>
+                    <p>{t('no_likes_yet')}</p>
                 </div>
            </TabsContent>
         </Tabs>

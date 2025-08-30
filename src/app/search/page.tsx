@@ -16,6 +16,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import Link from 'next/link';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { useI18n } from '@/context/i18n';
 
 async function getUserProfile(userId: string): Promise<User | null> {
     if (!userId) return null;
@@ -35,6 +36,7 @@ export default function SearchPage() {
     const [loading, setLoading] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
     const [currentUser] = useAuthState(auth);
+    const { t } = useI18n();
 
     useEffect(() => {
         const performSearch = async () => {
@@ -97,8 +99,8 @@ export default function SearchPage() {
     const renderWelcomeMessage = () => (
         <div className="text-center py-16 text-muted-foreground">
             <SearchIcon className="mx-auto h-12 w-12 mb-4" />
-            <h2 className="text-xl font-semibold">পোস্ট বা ব্যবহারকারী খুঁজুন</h2>
-            <p>আপনার প্রিয় কন্টেন্ট বা বন্ধুদের খুঁজে বের করুন।</p>
+            <h2 className="text-xl font-semibold">{t('search_posts_or_users')}</h2>
+            <p>{t('find_your_favorite_content')}</p>
         </div>
     );
 
@@ -107,7 +109,7 @@ export default function SearchPage() {
             <div className="relative mb-6">
                 <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
-                    placeholder="পোস্ট বা ব্যবহারকারী খুঁজুন..."
+                    placeholder={t('search_posts_or_users') + '...'}
                     className="pl-10 text-lg"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -123,15 +125,15 @@ export default function SearchPage() {
             ) : (
                 <Tabs defaultValue="posts" className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="posts">পোস্ট ({posts.length})</TabsTrigger>
-                        <TabsTrigger value="users">ব্যবহারকারী ({users.length})</TabsTrigger>
+                        <TabsTrigger value="posts">{t('posts')} ({posts.length})</TabsTrigger>
+                        <TabsTrigger value="users">{t('users_tab')} ({users.length})</TabsTrigger>
                     </TabsList>
                     <TabsContent value="posts" className="mt-4 space-y-4">
                         {posts.length > 0 ? (
                             posts.map(post => <PostCard key={post.id} post={post} user={currentUser} />)
                         ) : (
                             <div className="text-center py-16 text-muted-foreground">
-                                <p>"{searchTerm}" এর জন্য কোনো পোস্ট খুঁজে পাওয়া যায়নি।</p>
+                                <p>"{searchTerm}" {t('no_posts_found_for')}</p>
                             </div>
                         )}
                     </TabsContent>
@@ -151,14 +153,14 @@ export default function SearchPage() {
                                             </div>
                                         </Link>
                                         <Link href={`/profile/${user.id}`}>
-                                            <Button variant="outline">প্রোফাইল দেখুন</Button>
+                                            <Button variant="outline">{t('view_profile')}</Button>
                                         </Link>
                                    </CardContent>
                                </Card>
                            ))
                        ) : (
                             <div className="text-center py-16 text-muted-foreground">
-                                <p>"{searchTerm}" এর জন্য কোনো ব্যবহারকারী খুঁজে পাওয়া যায়নি।</p>
+                                <p>"{searchTerm}" {t('no_users_found_for')}</p>
                             </div>
                        )}
                     </TabsContent>

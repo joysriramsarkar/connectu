@@ -30,9 +30,10 @@ import {
 import { useAuthState } from "react-firebase-hooks/auth";
 import type { Comment, User } from "@/lib/data";
 import { formatDistanceToNow } from "date-fns";
-import { bn } from "date-fns/locale";
+import { bn, enUS } from 'date-fns/locale';
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/context/i18n";
 
 
 interface CommentSheetProps {
@@ -56,6 +57,7 @@ async function getUserProfile(userId: string): Promise<User | null> {
 export function CommentSheet({ postId, postContent, author, open, onOpenChange }: CommentSheetProps) {
   const [user] = useAuthState(auth);
   const { toast } = useToast();
+  const { t, locale } = useI18n();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(true);
@@ -122,15 +124,15 @@ export function CommentSheet({ postId, postContent, author, open, onOpenChange }
 
         setNewComment("");
         toast({
-            title: "সফল",
-            description: "আপনার মন্তব্য যোগ করা হয়েছে।"
+            title: t('success_title'),
+            description: t('comment_added_success')
         })
     } catch (error) {
         console.error("Error adding comment: ", error);
         toast({
             variant: "destructive",
-            title: "ত্রুটি",
-            description: "মন্তব্য যোগ করা যায়নি।"
+            title: t('error_title'),
+            description: t('comment_add_failed')
         })
     } finally {
         setSubmitting(false);
@@ -139,16 +141,16 @@ export function CommentSheet({ postId, postContent, author, open, onOpenChange }
   
   const formatTimestamp = (timestamp: any) => {
     if (!timestamp?.toDate) return '';
-    return formatDistanceToNow(timestamp.toDate(), { addSuffix: true, locale: bn });
+    return formatDistanceToNow(timestamp.toDate(), { addSuffix: true, locale: locale === 'bn' ? bn : enUS });
   }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="flex flex-col">
         <SheetHeader>
-          <SheetTitle>{author.name}-এর পোস্টে মন্তব্য</SheetTitle>
+          <SheetTitle>{author.name}-er {t('comment_on_post')}</SheetTitle>
           <SheetDescription>
-            এখানে আপনি এই পোস্টের সকল মন্তব্য দেখতে পারবেন।
+            {t('view_all_comments_here')}
           </SheetDescription>
         </SheetHeader>
         <div className="flex-1 flex flex-col min-h-0">
@@ -180,13 +182,13 @@ export function CommentSheet({ postId, postContent, author, open, onOpenChange }
                 </ScrollArea>
             ) : (
                 <div className="flex-1 flex items-center justify-center">
-                    <p className="text-muted-foreground">এখনও কোনো মন্তব্য নেই।</p>
+                    <p className="text-muted-foreground">{t('no_comments_yet')}</p>
                 </div>
             )}
             <form onSubmit={handleAddComment} className="mt-4 border-t pt-4">
             <div className="relative">
                 <Textarea
-                placeholder="আপনার মন্তব্য যোগ করুন..."
+                placeholder={t('add_your_comment')}
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 className="pr-16"

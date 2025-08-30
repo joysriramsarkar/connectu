@@ -6,12 +6,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { cn } from "@/lib/utils";
-import { Home, MessageSquare, User, Bell, Search } from "lucide-react";
+import { Home, MessageSquare, User, Bell, Search, Languages } from "lucide-react";
 import { auth, db } from "@/lib/firebase";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { useI18n } from "@/context/i18n";
+import { LanguageSwitcher } from "./language-switcher";
 
 export function MobileNav() {
   const pathname = usePathname();
+  const { t, locale } = useI18n();
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [notificationCount, setNotificationCount] = useState(0);
@@ -38,11 +41,11 @@ export function MobileNav() {
   }, [user]);
 
   const navItems = [
-    { href: "/", icon: Home, label: 'হোম' },
-    { href: "/messages", icon: MessageSquare, label: 'বার্তা' },
-    { href: "/search", icon: Search, label: 'অনুসন্ধান' },
-    { href: "/notifications", icon: Bell, label: 'বিজ্ঞপ্তি' },
-    { href: loading || !user ? "/login" : `/profile/${user.uid}`, icon: User, label: 'প্রোফাইল' },
+    { href: "/", icon: Home, label: t('home') },
+    { href: "/messages", icon: MessageSquare, label: t('messages') },
+    { href: "/search", icon: Search, label: t('search') },
+    { href: "/notifications", icon: Bell, label: t('notifications') },
+    { href: loading || !user ? "/login" : `/profile/${user.uid}`, icon: User, label: t('profile') },
   ];
 
   return (
@@ -59,13 +62,16 @@ export function MobileNav() {
             aria-label={label}
           >
             <Icon className="h-6 w-6" />
-            {label === 'বিজ্ঞপ্তি' && notificationCount > 0 && (
+            {label === t('notifications') && notificationCount > 0 && (
                  <span className="absolute top-1 right-1/2 translate-x-[20px] h-4 w-4 text-xs bg-red-500 text-white rounded-full flex items-center justify-center">
-                    {(notificationCount > 9 ? '৯+' : notificationCount.toLocaleString('bn-BD'))}
+                    {(notificationCount > 9 ? '৯+' : notificationCount.toLocaleString(locale as string))}
                  </span>
             )}
           </Link>
         ))}
+         <div className="flex flex-col items-center justify-center w-full h-full text-muted-foreground">
+            <LanguageSwitcher as="button" />
+        </div>
       </nav>
     </div>
   );

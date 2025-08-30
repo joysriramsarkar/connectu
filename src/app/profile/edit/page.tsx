@@ -20,12 +20,13 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useI18n } from '@/context/i18n';
 
 
 const profileSchema = z.object({
-  name: z.string().min(1, 'নাম আবশ্যক'),
-  handle: z.string().min(1, 'হ্যান্ডেল আবশ্যক').regex(/^[a-zA-Z0-9_]+$/, 'হ্যান্ডেল শুধুমাত্র অক্ষর, সংখ্যা এবং আন্ডারস্কোর ধারণ করতে পারে'),
-  bio: z.string().max(160, 'বায়ো ১৬০ অক্ষরের বেশি হতে পারবে না').optional(),
+  name: z.string().min(1, 'Name is required'),
+  handle: z.string().min(1, 'Handle is required').regex(/^[a-zA-Z0-9_]+$/, 'Handle can only contain letters, numbers, and underscores'),
+  bio: z.string().max(160, 'Bio cannot be more than 160 characters').optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -33,6 +34,7 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 export default function EditProfilePage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useI18n();
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [userProfile, setUserProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -45,6 +47,15 @@ export default function EditProfilePage() {
   const { register, handleSubmit, reset, formState: { errors } } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
   });
+  
+   useEffect(() => {
+    // Update zod schema messages with translations
+    profileSchema.extend({
+        name: z.string().min(1, t('name_required')),
+        handle: z.string().min(1, t('handle_required')).regex(/^[a-zA-Z0-9_]+$/, t('handle_validation')),
+        bio: z.string().max(160, t('bio_validation')).optional(),
+    });
+   }, [t]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -65,7 +76,7 @@ export default function EditProfilePage() {
       setLoading(false);
     });
     return () => unsubscribe();
-  }, [router, reset]);
+  }, [router, reset, t]);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -113,16 +124,16 @@ export default function EditProfilePage() {
       });
 
       toast({
-        title: 'সফল',
-        description: 'আপনার প্রোফাইল সফলভাবে আপডেট করা হয়েছে।',
+        title: t('success_title'),
+        description: t('profile_update_success'),
       });
       router.push(`/profile/${currentUser.uid}`);
     } catch (error) {
       console.error("Error updating profile:", error);
       toast({
         variant: 'destructive',
-        title: 'ত্রুটি',
-        description: 'প্রোফাইল আপডেট করার সময় একটি সমস্যা হয়েছে।',
+        title: t('error_title'),
+        description: t('profile_update_error'),
       });
     } finally {
       setIsSubmitting(false);
@@ -140,7 +151,7 @@ export default function EditProfilePage() {
   if (!userProfile) {
     return (
         <div className="flex items-center justify-center h-screen">
-            <p>প্রোফাইল খুঁজে পাওয়া যায়নি।</p>
+            <p>{t('profile_not_found')}</p>
         </div>
     );
   }
@@ -148,25 +159,25 @@ export default function EditProfilePage() {
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-6">
         <Button variant="ghost" onClick={() => router.back()} className="mb-4">
-            <ArrowLeft className="mr-2 h-4 w-4" /> ফিরে যান
+            <ArrowLeft className="mr-2 h-4 w-4" /> {t('back_button')}
         </Button>
         <form onSubmit={handleSubmit(onSubmit)}>
             <Card>
                 <CardHeader>
-                    <CardTitle>প্রোফাইল সম্পাদনা করুন</CardTitle>
-                    <CardDescription>আপনার প্রোফাইলের তথ্য এখানে পরিবর্তন করুন।</CardDescription>
+                    <CardTitle>{t('edit_profile')}</CardTitle>
+                    <CardDescription>{t('profile_update_description')}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div>
-                        <Label>কভার ফটো</Label>
+                        <Label>{t('cover_photo')}</Label>
                         <div className="mt-2 aspect-[3/1] relative w-full rounded-lg overflow-hidden bg-muted">
-                            {coverPreview && <Image src={coverPreview} alt="কভার ফটো প্রিভিউ" fill className="object-cover" />}
+                            {coverPreview && <Image src={coverPreview} alt={t('cover_photo')} fill className="object-cover" />}
                         </div>
                         <Input id="coverPhoto" type="file" onChange={handleCoverChange} className="mt-2" accept="image/*" disabled={isSubmitting}/>
                     </div>
 
                      <div>
-                        <Label>প্রোফাইল ফটো</Label>
+                        <Label>{t('profile_photo')}</Label>
                         <div className="mt-2 flex items-center gap-4">
                             <Avatar className="h-24 w-24">
                                 {avatarPreview && <AvatarImage src={avatarPreview} alt={userProfile.name} />}
@@ -177,19 +188,19 @@ export default function EditProfilePage() {
                     </div>
                     
                     <div className="space-y-2">
-                        <Label htmlFor="name">নাম</Label>
+                        <Label htmlFor="name">{t('name')}</Label>
                         <Input id="name" {...register('name')} disabled={isSubmitting} />
                         {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="handle">হ্যান্ডেল</Label>
+                        <Label htmlFor="handle">{t('handle')}</Label>
                         <Input id="handle" {...register('handle')} disabled={isSubmitting} />
                         {errors.handle && <p className="text-sm text-destructive">{errors.handle.message}</p>}
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="bio">বায়ো</Label>
+                        <Label htmlFor="bio">{t('bio')}</Label>
                         <Textarea id="bio" {...register('bio')} disabled={isSubmitting} />
                         {errors.bio && <p className="text-sm text-destructive">{errors.bio.message}</p>}
                     </div>
@@ -197,7 +208,7 @@ export default function EditProfilePage() {
                 <CardFooter>
                     <Button type="submit" disabled={isSubmitting}>
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {isSubmitting ? 'সংরক্ষণ করা হচ্ছে...' : 'সংরক্ষণ করুন'}
+                        {isSubmitting ? t('saving') : t('save')}
                     </Button>
                 </CardFooter>
             </Card>

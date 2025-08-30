@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,10 +19,11 @@ import { db, storage } from "@/lib/firebase";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import Image from "next/image";
+import { useI18n } from "@/context/i18n";
 
 
 const postSchema = z.object({
-  content: z.string().min(1, { message: "পোস্ট খালি থাকতে পারে না।" }).max(280, { message: "পোস্ট ২৮০ অক্ষরের বেশি হতে পারে না।" }),
+  content: z.string().min(1, { message: "Post cannot be empty." }).max(280, { message: "Post cannot be more than 280 characters." }),
 });
 
 interface CreatePostProps {
@@ -38,6 +39,7 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { t } = useI18n();
 
   const form = useForm<z.infer<typeof postSchema>>({
     resolver: zodResolver(postSchema),
@@ -45,6 +47,15 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
       content: "",
     },
   });
+
+  useEffect(() => {
+    const newResolver = zodResolver(z.object({
+        content: z.string()
+            .min(1, { message: t('content_empty_error') })
+            .max(280, { message: t('content_length_error') }),
+    }));
+    form.reset(undefined, { resolver: newResolver } as any);
+  }, [t, form]);
   
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -67,8 +78,8 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
     if (!postContent.trim()) {
       toast({
         variant: "destructive",
-        title: "ত্রুটি",
-        description: "হ্যাশট্যাগ তৈরি করতে কিছু লিখুন।",
+        title: t('error_title'),
+        description: t('generate_hashtags_prompt'),
       });
       return;
     }
@@ -82,8 +93,8 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
       console.error(error);
       toast({
         variant: "destructive",
-        title: "ত্রুটি",
-        description: "হ্যাশট্যাগ তৈরি করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
+        title: t('error_title'),
+        description: t('hashtag_generation_failed'),
       });
     } finally {
       setIsGenerating(false);
@@ -99,8 +110,8 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
     if (!user) {
         toast({
             variant: "destructive",
-            title: "ত্রুটি",
-            description: "পোস্ট করার জন্য আপনাকে লগ-ইন করতে হবে।",
+            title: t('error_title'),
+            description: t('create_post_error_login'),
         });
         return;
     }
@@ -130,8 +141,8 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
         await addDoc(collection(db, "posts"), postData);
 
         toast({
-          title: "পোস্ট সফল হয়েছে!",
-          description: "আপনার পোস্ট সফলভাবে তৈরি হয়েছে।",
+          title: t('post_success_title'),
+          description: t('post_success_description'),
         });
         form.reset();
         setHashtags([]);
@@ -141,8 +152,8 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
         console.error("Error creating post: ", error);
          toast({
             variant: "destructive",
-            title: "ত্রুটি",
-            description: "পোস্ট তৈরি করা যায়নি।",
+            title: t('error_title'),
+            description: t('post_create_failed'),
         });
     } finally {
         setIsSubmitting(false);
@@ -169,7 +180,7 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
                     <FormItem>
                       <FormControl>
                         <Textarea
-                          placeholder="আপনার মনে কি চলছে?"
+                          placeholder={t('whats_on_your_mind')}
                           className="resize-none border-none focus-visible:ring-0 text-lg p-0"
                           rows={3}
                           {...field}
@@ -219,7 +230,7 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
                 </Button>
               </div>
               <Button type="submit" className="rounded-full" disabled={isLoading || !form.formState.isValid}>
-                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'পোস্ট করুন'}
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : t('post_button')}
               </Button>
             </div>
           </form>

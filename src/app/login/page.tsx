@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Rss, User as UserIcon, Phone } from 'lucide-react';
+import { useI18n } from '@/context/i18n';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -40,6 +41,7 @@ export default function LoginPage() {
   
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useI18n();
 
   useEffect(() => {
     setIsClient(true);
@@ -49,14 +51,14 @@ export default function LoginPage() {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         toast({
-          title: "সফল!",
-          description: "আপনি সফলভাবে লগ ইন করেছেন।",
+          title: t('success_title'),
+          description: t('login_success'),
         });
         router.push('/');
       }
     });
     return () => unsubscribe();
-  }, [router, toast]);
+  }, [router, toast, t]);
   
   const setupRecaptcha = () => {
     if (!isClient || !auth) return null;
@@ -80,8 +82,8 @@ export default function LoginPage() {
       console.error(error);
       toast({
         variant: "destructive",
-        title: "ত্রুটি",
-        description: error.message || "লগইন করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
+        title: t('error_title'),
+        description: error.message || t('login_failed'),
       });
     } finally {
       setLoading(false);
@@ -97,8 +99,8 @@ export default function LoginPage() {
             console.error(error);
             toast({
                 variant: "destructive",
-                title: "ত্রুটি",
-                description: "Google দিয়ে লগইন করা যায়নি। অনুগ্রহ করে পপ-আপ চালু আছে কিনা দেখুন এবং আবার চেষ্টা করুন।",
+                title: t('error_title'),
+                description: t('google_login_failed'),
             });
         }
     } finally {
@@ -114,8 +116,8 @@ export default function LoginPage() {
         console.error(error);
         toast({
             variant: "destructive",
-            title: "ত্রুটি",
-            description: error.message || "বেনামে লগইন করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
+            title: t('error_title'),
+            description: error.message || t('anonymous_login_failed'),
         });
     } finally {
         setAnonymousLoading(false);
@@ -129,8 +131,8 @@ export default function LoginPage() {
     if (!appVerifier) {
         toast({
             variant: "destructive",
-            title: "ত্রুটি",
-            description: "reCAPTCHA লোড করা যায়নি। অনুগ্রহ করে পৃষ্ঠাটি রিফ্রেশ করুন।",
+            title: t('error_title'),
+            description: t('recaptcha_load_failed'),
         });
         setPhoneLoading(false);
         return;
@@ -140,20 +142,20 @@ export default function LoginPage() {
       setConfirmationResult(result);
       setPhoneAuthStep('enterOtp');
       toast({
-        title: 'OTP পাঠানো হয়েছে',
-        description: `আপনার ফোন নম্বর +${phone}-এ একটি OTP পাঠানো হয়েছে।`,
+        title: t('otp_sent_title'),
+        description: `${t('otp_sent_description')} +${phone}`,
       });
     } catch (error: any) {
         console.error(error);
-        let description = "OTP পাঠানো যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।";
+        let description = t('otp_send_failed');
         if (error.code === 'auth/billing-not-enabled') {
-            description = "ফোন অথেন্টিকেশন এই প্রজেক্টের জন্য সক্রিয় করা নেই। অনুগ্রহ করে Firebase কনসোলে বিলিং চালু করুন।";
+            description = t('firebase_billing_not_enabled');
         } else if (error.message) {
             description = error.message;
         }
         toast({
             variant: "destructive",
-            title: "ত্রুটি",
+            title: t('error_title'),
             description: description,
         });
     } finally {
@@ -172,8 +174,8 @@ export default function LoginPage() {
       console.error(error);
       toast({
         variant: "destructive",
-        title: "ত্রুটি",
-        description: error.message || "ভুল OTP। অনুগ্রহ করে আবার চেষ্টা করুন।",
+        title: t('error_title'),
+        description: error.message || t('wrong_otp'),
       });
     } finally {
       setPhoneLoading(false);
@@ -196,9 +198,9 @@ export default function LoginPage() {
       <Card className="mx-auto max-w-sm w-full">
         <CardHeader className="text-center">
             <Rss className="h-12 w-12 mx-auto text-primary" />
-          <CardTitle className="text-2xl">ConnectU-তে লগ ইন করুন</CardTitle>
+          <CardTitle className="text-2xl">{t('login_to_connectu')}</CardTitle>
           <CardDescription>
-            {authMethod === 'email' ? 'আপনার অ্যাকাউন্টে প্রবেশ করতে ইমেল এবং পাসওয়ার্ড লিখুন' : 'আপনার ফোন নম্বর দিয়ে লগ ইন করুন'}
+            {authMethod === 'email' ? t('enter_email_password') : t('use_phone_to_login')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -206,7 +208,7 @@ export default function LoginPage() {
             {authMethod === 'email' ? (
                 <form onSubmit={handleLogin} className="grid gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="email">ইমেল</Label>
+                    <Label htmlFor="email">{t('email')}</Label>
                     <Input
                       id="email"
                       type="email"
@@ -219,9 +221,9 @@ export default function LoginPage() {
                   </div>
                   <div className="grid gap-2">
                     <div className="flex items-center">
-                      <Label htmlFor="password">পাসওয়ার্ড</Label>
+                      <Label htmlFor="password">{t('password')}</Label>
                       <Link href="#" className="ml-auto inline-block text-sm underline">
-                        পাসওয়ার্ড ভুলে গেছেন?
+                        {t('forgot_password')}
                       </Link>
                     </div>
                     <Input 
@@ -235,13 +237,13 @@ export default function LoginPage() {
                   </div>
                   <Button type="submit" className="w-full" disabled={isAnyLoading}>
                     {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {loading ? "লগ ইন করা হচ্ছে..." : "লগ ইন"}
+                    {loading ? t('logging_in') : t('login')}
                   </Button>
                 </form>
             ) : phoneAuthStep === 'enterPhone' ? (
                 <form onSubmit={handlePhoneSignIn} className="grid gap-4">
                     <div className="grid gap-2">
-                        <Label htmlFor="phone">ফোন নম্বর (দেশের কোড সহ)</Label>
+                        <Label htmlFor="phone">{t('phone_number_with_code')}</Label>
                         <Input
                         id="phone"
                         type="tel"
@@ -254,13 +256,13 @@ export default function LoginPage() {
                     </div>
                     <Button type="submit" className="w-full" disabled={isAnyLoading}>
                         {phoneLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                        {phoneLoading ? 'OTP পাঠানো হচ্ছে...' : 'OTP পাঠান'}
+                        {phoneLoading ? t('sending_otp') : t('send_otp')}
                     </Button>
                 </form>
             ) : (
                 <form onSubmit={handleOtpVerify} className="grid gap-4">
                     <div className="grid gap-2">
-                        <Label htmlFor="otp">OTP</Label>
+                        <Label htmlFor="otp">{t('otp')}</Label>
                         <Input
                         id="otp"
                         type="text"
@@ -273,7 +275,7 @@ export default function LoginPage() {
                     </div>
                     <Button type="submit" className="w-full" disabled={isAnyLoading}>
                         {phoneLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                        {phoneLoading ? 'যাচাই করা হচ্ছে...' : 'যাচাই করুন ও লগইন করুন'}
+                        {phoneLoading ? t('verifying') : t('verify_and_login')}
                     </Button>
                 </form>
             )}
@@ -284,35 +286,35 @@ export default function LoginPage() {
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
                     <span className="bg-background px-2 text-muted-foreground">
-                    অথবা চালিয়ে যান
+                    {t('or_continue_with')}
                     </span>
                 </div>
             </div>
 
             {authMethod === 'phone' ? (
                 <Button variant="outline" className="w-full" onClick={() => setAuthMethod('email')} disabled={isAnyLoading}>
-                    ইমেল দিয়ে লগইন করুন
+                    {t('login_with_email')}
                 </Button>
             ) : (
                  <Button variant="outline" className="w-full" onClick={() => { setAuthMethod('phone'); setPhoneAuthStep('enterPhone'); }} disabled={isAnyLoading}>
                     <Phone className="mr-2 h-4 w-4" />
-                    ফোন দিয়ে লগইন করুন
+                    {t('login_with_phone')}
                 </Button>
             )}
              
             <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isAnyLoading}>
                 {googleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2 h-4 w-4" />}
-                Google দিয়ে লগইন করুন
+                {t('login_with_google')}
             </Button>
             <Button variant="secondary" className="w-full" onClick={handleAnonymousSignIn} disabled={isAnyLoading}>
                 {anonymousLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserIcon className="mr-2 h-4 w-4" />}
-                অতিথি হিসেবে চালিয়ে যান
+                {t('continue_as_guest')}
             </Button>
           </div>
           <div className="mt-4 text-center text-sm">
-            কোনো অ্যাকাউন্ট নেই?{" "}
+            {t('no_account')}{" "}
             <Link href="/signup" className="underline">
-              সাইন আপ করুন
+              {t('signup')}
             </Link>
           </div>
         </CardContent>
@@ -320,5 +322,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    
