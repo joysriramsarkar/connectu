@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, or } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { Post, User } from '@/lib/data';
 import { Input } from '@/components/ui/input';
@@ -50,15 +50,19 @@ export function SearchComponent() {
             try {
                 const searchTermLower = searchTerm.toLowerCase();
 
-                // Fetch all users and filter client-side to avoid complex query
-                const usersQuery = query(collection(db, 'users'));
-                const usersSnapshot = await getDocs(usersQuery);
-                const allUsers = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as User);
-                const filteredUsers = allUsers.filter(user => 
-                    user.name.toLowerCase().includes(searchTermLower) || 
-                    user.handle.toLowerCase().includes(searchTermLower)
+                // Search for users by name OR handle.
+                // NOTE: This is still not a full-text search. For better results, a dedicated search service like Algolia is recommended.
+                const usersQuery = query(
+                    collection(db, 'users'),
+                    or(
+                        where('name_lowercase', '>=', searchTermLower),
+                        where('name_lowercase', '<=', searchTermLower + '\uf8ff'),
+                        where('handle', '>=', searchTermLower),
+                        where('handle', '<=', searchTermLower + '\uf8ff')
+                    )
                 );
-                setUsers(filteredUsers);
+                const usersSnapshot = await getDocs(usersQuery);
+                setUsers(usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as User));
 
                 // Search for posts (simple content search)
                 const postsQuery = query(collection(db, 'posts'), 
