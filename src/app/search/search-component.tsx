@@ -135,7 +135,7 @@ export function SearchComponent() {
                             posts.map(post => <PostCard key={post.id} post={post} user={currentUser} />)
                         ) : (
                             <div className="text-center py-16 text-muted-foreground">
-                                <p>"{searchTerm}" {t('no_posts_found_for')}</p>
+                                <p>&quot;{searchTerm}&quot; {t('no_posts_found_for')}</p>
                             </div>
                         )}
                     </TabsContent>
@@ -162,7 +162,7 @@ export function SearchComponent() {
                            ))
                        ) : (
                             <div className="text-center py-16 text-muted-foreground">
-                                <p>"{searchTerm}" {t('no_users_found_for')}</p>
+                                <p>&quot;{searchTerm}&quot; {t('no_users_found_for')}</p>
                             </div>
                        )}
                     </TabsContent>
