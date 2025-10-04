@@ -43,7 +43,7 @@ const NotificationMessage = ({ notification }: { notification: NotificationType 
                 <p>
                     <Link href={`/profile/${notification.sender.id}`} onClick={(e) => e.stopPropagation()} className="font-bold hover:underline">{notification.sender.name}</Link>
                     {' '}{t('liked_your_post')}{' "'}
-                    <span className="italic">{notification.postContent?.substring(0, 30)}...</span>"
+                    <span className="italic">{notification.postContent?.substring(0, 30)}...</span>&quot;
                 </p>
             );
         case 'comment':
@@ -51,7 +51,7 @@ const NotificationMessage = ({ notification }: { notification: NotificationType 
                 <p>
                     <Link href={`/profile/${notification.sender.id}`} onClick={(e) => e.stopPropagation()} className="font-bold hover:underline">{notification.sender.name}</Link>
                     {' '}{t('commented_on_your_post')}{' "'}
-                    <span className="italic">{notification.postContent?.substring(0, 30)}...</span>"
+                    <span className="italic">{notification.postContent?.substring(0, 30)}...</span>&quot;
                 </p>
             );
         case 'follow':
