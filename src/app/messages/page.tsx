@@ -29,7 +29,7 @@ import { bn, enUS } from 'date-fns/locale';
 import { useI18n } from "@/context/i18n";
 
 async function getUserProfile(userId: string): Promise<User | null> {
-  if (!userId) return null;
+  if (!userId || !db) return null;
   const userDocRef = doc(db, "users", userId);
   const userDoc = await getDoc(userDocRef);
   if (userDoc.exists()) {
@@ -51,6 +51,7 @@ export default function MessagesPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!auth) return;
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
     });
@@ -58,7 +59,7 @@ export default function MessagesPage() {
   }, []);
 
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || !db) return;
     setLoading(true);
     const q = query(collection(db, "conversations"), where("participants", "array-contains", currentUser.uid), orderBy("lastMessageTimestamp", "desc"));
     
@@ -87,7 +88,7 @@ export default function MessagesPage() {
   }, [currentUser]);
 
   useEffect(() => {
-    if (selectedConversation) {
+    if (selectedConversation && db) {
       setMsgLoading(true);
       const q = query(collection(db, "conversations", selectedConversation.id, "messages"), orderBy("timestamp", "asc"));
       const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -108,7 +109,7 @@ export default function MessagesPage() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !currentUser || !selectedConversation || sending) return;
+    if (!newMessage.trim() || !currentUser || !selectedConversation || sending || !db) return;
 
     setSending(true);
     const content = newMessage;

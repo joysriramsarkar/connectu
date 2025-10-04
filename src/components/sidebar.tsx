@@ -19,7 +19,7 @@ import { useI18n } from "@/context/i18n";
 import { LanguageSwitcher } from "./language-switcher";
 
 async function getUserProfile(userId: string): Promise<AppUser | null> {
-  if (!userId) return null;
+  if (!userId || !db) return null;
   const userDocRef = doc(db, "users", userId);
   const userDoc = await getDoc(userDocRef);
   if (userDoc.exists()) {
@@ -80,6 +80,7 @@ export function Sidebar() {
 
 
   useEffect(() => {
+    if (!auth) return;
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setFirebaseUser(currentUser);
       if (currentUser) {
@@ -94,7 +95,7 @@ export function Sidebar() {
   }, []);
 
   useEffect(() => {
-    if (!firebaseUser) return;
+    if (!firebaseUser || !db) return;
     const q = query(
         collection(db, "notifications"),
         where("recipientId", "==", firebaseUser.uid),
@@ -108,6 +109,7 @@ export function Sidebar() {
 
 
   const handleLogout = async () => {
+    if (!auth) return;
     try {
       await auth.signOut();
       router.push('/login');

@@ -58,9 +58,14 @@ export default function EditProfilePage() {
    }, [t]);
 
   useEffect(() => {
+    if (!auth) return;
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setCurrentUser(user);
+        if (!db) {
+            setLoading(false);
+            return;
+        }
         const userDocRef = doc(db, "users", user.uid);
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
@@ -95,7 +100,7 @@ export default function EditProfilePage() {
   };
 
   const onSubmit: SubmitHandler<ProfileFormValues> = async (data) => {
-    if (!currentUser || !userProfile) return;
+    if (!currentUser || !userProfile || !storage || !db) return;
     setIsSubmitting(true);
     
     try {

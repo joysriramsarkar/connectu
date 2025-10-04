@@ -17,7 +17,7 @@ import { Loader2 } from 'lucide-react';
 import { useI18n } from '@/context/i18n';
 
 async function getUserProfile(userId: string): Promise<AppUser | null> {
-  if (!userId) return null;
+  if (!userId || !db) return null;
   const userDocRef = doc(db, "users", userId);
   const userDoc = await getDoc(userDocRef);
   if (userDoc.exists()) {
@@ -26,7 +26,8 @@ async function getUserProfile(userId: string): Promise<AppUser | null> {
   return null;
 }
 
-async function createUserProfile(firebaseUser: FirebaseUser): Promise<AppUser> {
+async function createUserProfile(firebaseUser: FirebaseUser): Promise<AppUser | null> {
+    if (!db) return null;
     const isAnonymous = firebaseUser.isAnonymous;
     const newUser: AppUser = {
         id: firebaseUser.uid,
@@ -53,6 +54,7 @@ export default function Home() {
   const { t } = useI18n();
 
   const fetchPosts = useCallback(async () => {
+    if (!db) return;
     setPostsLoading(true);
     const postsQuery = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(20));
     const querySnapshot = await getDocs(postsQuery);
@@ -68,7 +70,7 @@ export default function Home() {
   }, []);
   
   const fetchSuggestedUsers = useCallback(async (currentUserId: string) => {
-    if (!currentUserId) return;
+    if (!currentUserId || !db) return;
     const usersQuery = query(
       collection(db, "users"), 
       where("id", "!=", currentUserId),
@@ -80,6 +82,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    if (!auth) return;
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       if (fbUser) {
         setFirebaseUser(fbUser);

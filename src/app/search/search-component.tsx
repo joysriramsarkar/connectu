@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { useI18n } from '@/context/i18n';
 
 async function getUserProfile(userId: string): Promise<User | null> {
-    if (!userId) return null;
+    if (!userId || !db) return null;
     const userDocRef = doc(db, "users", userId);
     const userDoc = await getDoc(userDocRef);
     if (userDoc.exists()) {
@@ -33,7 +33,7 @@ export function SearchComponent() {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
-    const [currentUser] = useAuthState(auth);
+    const [currentUser] = useAuthState(auth!);
     const { t } = useI18n();
 
     useEffect(() => {
@@ -44,6 +44,7 @@ export function SearchComponent() {
                 setHasSearched(false);
                 return;
             }
+            if (!db) return;
             setLoading(true);
             setHasSearched(true);
 

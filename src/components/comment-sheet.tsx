@@ -45,7 +45,7 @@ interface CommentSheetProps {
 }
 
 async function getUserProfile(userId: string): Promise<User | null> {
-    if (!userId) return null;
+    if (!userId || !db) return null;
     const userDocRef = doc(db, "users", userId);
     const userDoc = await getDoc(userDocRef);
     if (userDoc.exists()) {
@@ -55,7 +55,7 @@ async function getUserProfile(userId: string): Promise<User | null> {
 }
 
 export function CommentSheet({ postId, postContent, author, open, onOpenChange }: CommentSheetProps) {
-  const [user] = useAuthState(auth);
+  const [user] = useAuthState(auth!);
   const { toast } = useToast();
   const { t, locale } = useI18n();
   const [comments, setComments] = useState<Comment[]>([]);
@@ -64,7 +64,7 @@ export function CommentSheet({ postId, postContent, author, open, onOpenChange }
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !db) return;
     setLoading(true);
     const q = query(
       collection(db, "posts", postId, "comments"),
@@ -88,7 +88,7 @@ export function CommentSheet({ postId, postContent, author, open, onOpenChange }
 
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newComment.trim() || !user || submitting || !author) return;
+    if (!newComment.trim() || !user || submitting || !author || !db) return;
 
     setSubmitting(true);
     

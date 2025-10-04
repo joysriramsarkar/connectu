@@ -17,7 +17,7 @@ import { useRouter } from 'next/navigation';
 import { useI18n } from '@/context/i18n';
 
 async function getUserProfile(userId: string): Promise<User | null> {
-    if (!userId) return null;
+    if (!userId || !db) return null;
     const userDocRef = doc(db, "users", userId);
     const userDoc = await getDoc(userDocRef);
     if (userDoc.exists()) {
@@ -75,6 +75,7 @@ export default function NotificationsPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        if (!auth) return;
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (user) {
                 setCurrentUser(user);
@@ -86,7 +87,7 @@ export default function NotificationsPage() {
     }, [router]);
 
     useEffect(() => {
-        if (!currentUser) return;
+        if (!currentUser || !db) return;
         setLoading(true);
         const q = query(
             collection(db, "notifications"),
@@ -111,6 +112,7 @@ export default function NotificationsPage() {
     }, [currentUser]);
 
     const handleNotificationClick = async (notification: NotificationType) => {
+        if (!db) return;
         if (!notification.read) {
             await updateDoc(doc(db, "notifications", notification.id), { read: true });
         }

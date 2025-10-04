@@ -20,6 +20,7 @@ export function MobileNav() {
   const [notificationCount, setNotificationCount] = useState(0);
 
   useEffect(() => {
+    if (!auth) return;
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
@@ -28,7 +29,7 @@ export function MobileNav() {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !db) return;
     const q = query(
         collection(db, "notifications"),
         where("recipientId", "==", user.uid),
