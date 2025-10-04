@@ -34,6 +34,7 @@ export default function ProfilePage() {
   const [followLoading, setFollowLoading] = useState(false);
   
   useEffect(() => {
+    if (!auth) return;
     const unsubscribe = onAuthStateChanged(auth, (user) => {
         setCurrentUser(user);
     });
@@ -41,7 +42,7 @@ export default function ProfilePage() {
   }, []);
   
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !db) return;
     setLoading(true);
     const unsub = onSnapshot(doc(db, "users", userId), (doc) => {
         if(doc.exists()){
@@ -56,7 +57,7 @@ export default function ProfilePage() {
 
 
   const fetchPosts = useCallback(async () => {
-    if(!user || !userId) return;
+    if(!user || !userId || !db) return;
     setPostsLoading(true);
     const postsQuery = query(
       collection(db, "posts"), 
@@ -83,7 +84,7 @@ export default function ProfilePage() {
   }, [user, fetchPosts]);
 
   useEffect(() => {
-    if (!currentUser || !user) return;
+    if (!currentUser || !user || !db) return;
     setFollowLoading(true);
     const followDocRef = doc(db, "follows", `${currentUser.uid}_${user.id}`);
     const unsubscribe = onSnapshot(followDocRef, (doc) => {
@@ -94,7 +95,7 @@ export default function ProfilePage() {
   }, [currentUser, user]);
 
   const handleFollowToggle = async () => {
-    if (!currentUser || !user || followLoading) return;
+    if (!currentUser || !user || followLoading || !db) return;
     setFollowLoading(true);
 
     const currentUserRef = doc(db, "users", currentUser.uid);
@@ -135,7 +136,7 @@ export default function ProfilePage() {
   };
 
   const handleSendMessage = async () => {
-    if (!currentUser || !user) return;
+    if (!currentUser || !user || !db) return;
 
     const conversationId = [currentUser.uid, user.id].sort().join('_');
     const conversationRef = doc(db, 'conversations', conversationId);

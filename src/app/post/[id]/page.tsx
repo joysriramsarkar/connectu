@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { useI18n } from '@/context/i18n';
 
 async function getUserProfile(userId: string): Promise<User | null> {
-    if (!userId) return null;
+    if (!userId || !db) return null;
     const userDocRef = doc(db, "users", userId);
     const userDoc = await getDoc(userDocRef);
     if (userDoc.exists()) {
@@ -27,7 +27,7 @@ export default function PostPage() {
     const router = useRouter();
     const { t } = useI18n();
     const postId = params.id as string;
-    const [user] = useAuthState(auth);
+    const [user] = useAuthState(auth!);
     const [post, setPost] = useState<Post | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -35,6 +35,7 @@ export default function PostPage() {
         if (!postId) return;
 
         const fetchPost = async () => {
+            if (!db) return;
             setLoading(true);
             const postRef = doc(db, "posts", postId);
             const postDoc = await getDoc(postRef);

@@ -115,6 +115,7 @@ export function CreatePost({ user, onPostCreated }: CreatePostProps) {
         });
         return;
     }
+    if (!db || !storage) return;
 
     setIsSubmitting(true);
     try {

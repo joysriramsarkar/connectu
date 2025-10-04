@@ -48,6 +48,7 @@ export default function LoginPage() {
   }, []);
 
   useEffect(() => {
+    if (!auth) return;
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         toast({
@@ -75,6 +76,7 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!auth) return;
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
@@ -91,6 +93,7 @@ export default function LoginPage() {
   };
 
   const handleGoogleSignIn = async () => {
+    if (!auth || !googleProvider) return;
     setGoogleLoading(true);
     try {
         await signInWithPopup(auth, googleProvider);
@@ -109,6 +112,7 @@ export default function LoginPage() {
   };
 
   const handleAnonymousSignIn = async () => {
+    if (!auth) return;
     setAnonymousLoading(true);
     try {
         await signInAnonymously(auth);
@@ -126,6 +130,7 @@ export default function LoginPage() {
 
   const handlePhoneSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!auth) return;
     setPhoneLoading(true);
     const appVerifier = setupRecaptcha();
     if (!appVerifier) {

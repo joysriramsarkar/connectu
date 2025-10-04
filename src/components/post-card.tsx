@@ -46,7 +46,7 @@ export function PostCard({ post, user }: PostCardProps) {
   const [isCommentSheetOpen, setIsCommentSheetOpen] = useState(false);
 
   useEffect(() => {
-    if (!post.id) return;
+    if (!post.id || !db) return;
     const postRef = doc(db, "posts", post.id);
     const unsubscribe = onSnapshot(postRef, (doc) => {
         if(doc.exists()) {
@@ -60,7 +60,7 @@ export function PostCard({ post, user }: PostCardProps) {
   
   useEffect(() => {
     let unsubscribe: () => void;
-    if (user && post.id) {
+    if (user && post.id && db) {
       const likeDocRef = doc(db, "posts", post.id, "likes", user.uid);
       unsubscribe = onSnapshot(likeDocRef, (doc) => {
         setIsLiked(doc.exists());
@@ -72,7 +72,7 @@ export function PostCard({ post, user }: PostCardProps) {
   }, [user, post.id]);
 
   const handleLikeToggle = async () => {
-    if (!user || likeLoading || !post.id || !post.author) return;
+    if (!user || likeLoading || !post.id || !post.author || !db) return;
     setLikeLoading(true);
 
     const postRef = doc(db, "posts", post.id);
