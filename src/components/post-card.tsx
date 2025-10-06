@@ -14,11 +14,11 @@ import { formatDistanceToNow } from 'date-fns';
 import { bn, enUS } from 'date-fns/locale';
 import { useToast } from "@/hooks/use-toast";
 import { CommentSheet } from './comment-sheet';
-import { useSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import { toggleLike } from '@/lib/post.actions';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { useI18n } from '@/context/i18n';
+import { User } from 'next-auth';
 
 const FacebookIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 512 512" {...props}><path fill="#0866FF" d="M512 256C512 114.6 397.4 0 256 0S0 114.6 0 256C0 376 82.7 476.8 194.2 504.5V334.2H137.4V256h56.8v-60.3c0-56.1 33.4-87.2 84.5-87.2c24.6 0 51.3 4.4 51.3 4.4v68.5h-39.3c-27.2 0-35.6 16.3-35.6 34.5V256h76.2l-12.2 78.2h-64V504.5C429.3 476.8 512 376 512 256z"/></svg>
@@ -33,13 +33,12 @@ const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 interface PostCardProps {
   post: Post & { isLiked?: boolean };
+  user: User | null;
 }
 
-export function PostCard({ post }: PostCardProps) {
+export function PostCard({ post, user }: PostCardProps) {
   const { toast } = useToast();
   const { t, locale } = useI18n();
-  const { data: session } = useSession();
-  const user = session?.user;
   const pathname = usePathname();
   let [isPending, startTransition] = useTransition();
 

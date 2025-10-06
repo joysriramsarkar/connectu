@@ -165,6 +165,13 @@ export default function ProfilePage() {
     notFound();
   }
 
+  const authUser = currentUser ? {
+      id: currentUser.uid,
+      name: currentUser.displayName,
+      email: currentUser.email,
+      image: currentUser.photoURL
+  } : null;
+
   return (
     <div>
       <div className="relative h-48 md:h-64 w-full">
@@ -228,7 +235,7 @@ export default function ProfilePage() {
                     <Loader2 className="h-8 w-8 animate-spin" />
                 </div>
              ) : posts.length > 0 ? (
-                posts.map(post => <PostCard key={post.id} post={post} user={currentUser}/>)
+                posts.map(post => <PostCard key={post.id} post={post} user={authUser}/>)
              ) : (
                 <div className="text-center py-16 text-muted-foreground">
                     <p>{t('no_posts_yet')}</p>

@@ -116,6 +116,13 @@ export default function Home() {
     return null;
   }
 
+  const authUser = firebaseUser ? {
+      id: firebaseUser.uid,
+      name: firebaseUser.displayName,
+      email: firebaseUser.email,
+      image: firebaseUser.photoURL
+  } : null;
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-4 p-4 md:p-6">
       <div className="md:col-span-2 xl:col-span-3 space-y-6">
@@ -123,12 +130,12 @@ export default function Home() {
         <div className="space-y-4">
           {postsLoading ? (
             <div className="space-y-4">
-              <PostCard post={{id: '1', authorId: '1'} as Post} user={firebaseUser}/>
-              <PostCard post={{id: '2', authorId: '2'} as Post} user={firebaseUser}/>
+              <PostCard post={{id: '1', authorId: '1'} as Post} user={authUser}/>
+              <PostCard post={{id: '2', authorId: '2'} as Post} user={authUser}/>
             </div>
           ) : posts.length > 0 ? (
              posts.map((post) => (
-                <PostCard key={post.id} post={post} user={firebaseUser} />
+                <PostCard key={post.id} post={post} user={authUser} />
               ))
           ) : (
              <Card>
