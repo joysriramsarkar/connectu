@@ -1,22 +1,22 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import type { Post } from '@/lib/data';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Heart, MessageCircle, Send, Copy } from 'lucide-react';
+import { Heart, MessageCircle, Send, Copy, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { bn, enUS } from 'date-fns/locale';
-import { auth, db } from '@/lib/firebase';
-import { doc, setDoc, deleteDoc, increment, writeBatch, onSnapshot, collection, serverTimestamp } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { CommentSheet } from './comment-sheet';
-import { User as FirebaseUser } from 'firebase/auth';
+import { useSession } from 'next-auth/react';
+import { usePathname } from 'next/navigation';
+import { toggleLike } from '@/lib/post.actions';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { useI18n } from '@/context/i18n';
 
@@ -32,86 +32,42 @@ const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 
 interface PostCardProps {
-  post: Post;
-  user: FirebaseUser | null | undefined;
+  post: Post & { isLiked?: boolean };
 }
 
-export function PostCard({ post, user }: PostCardProps) {
+export function PostCard({ post }: PostCardProps) {
   const { toast } = useToast();
   const { t, locale } = useI18n();
-  const [isLiked, setIsLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(post.likes || 0);
-  const [commentCount, setCommentCount] = useState(post.comments || 0);
-  const [likeLoading, setLikeLoading] = useState(false);
+  const { data: session } = useSession();
+  const user = session?.user;
+  const pathname = usePathname();
+  let [isPending, startTransition] = useTransition();
+
+  // Optimistic UI state
+  const [optimisticLikes, setOptimisticLikes] = useState({
+    count: post.likes || 0,
+    isLiked: post.isLiked || false,
+  });
+
   const [isCommentSheetOpen, setIsCommentSheetOpen] = useState(false);
 
-  useEffect(() => {
-    if (!post.id || !db) return;
-    const postRef = doc(db, "posts", post.id);
-    const unsubscribe = onSnapshot(postRef, (doc) => {
-        if(doc.exists()) {
-            const data = doc.data();
-            setLikeCount(data.likes || 0);
-            setCommentCount(data.comments || 0);
-        }
-    });
-    return () => unsubscribe();
-  }, [post.id]);
-  
-  useEffect(() => {
-    let unsubscribe: () => void;
-    if (user && post.id && db) {
-      const likeDocRef = doc(db, "posts", post.id, "likes", user.uid);
-      unsubscribe = onSnapshot(likeDocRef, (doc) => {
-        setIsLiked(doc.exists());
-      });
-    }
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, [user, post.id]);
-
   const handleLikeToggle = async () => {
-    if (!user || likeLoading || !post.id || !post.author || !db) return;
-    setLikeLoading(true);
+    if (!user || !post.id || !post.author) return;
 
-    const postRef = doc(db, "posts", post.id);
-    const likeRef = doc(db, "posts", post.id, "likes", user.uid);
-    const notificationsColRef = collection(db, 'notifications');
+    // Optimistic update
+    setOptimisticLikes(prev => ({
+      count: prev.isLiked ? prev.count - 1 : prev.count + 1,
+      isLiked: !prev.isLiked,
+    }));
 
-    const batch = writeBatch(db);
-
-    try {
-      if (isLiked) {
-        batch.delete(likeRef);
-        batch.update(postRef, { likes: increment(-1) });
-      } else {
-        batch.set(likeRef, { userId: user.uid, createdAt: serverTimestamp() });
-        batch.update(postRef, { likes: increment(1) });
-        
-        if (user.uid !== post.author.id) {
-             batch.set(doc(notificationsColRef), {
-                type: 'like',
-                senderId: user.uid,
-                recipientId: post.author.id,
-                postId: post.id,
-                postContent: post.content,
-                createdAt: serverTimestamp(),
-                read: false,
-            });
-        }
-      }
-      await batch.commit();
-    } catch (error) {
-      console.error("Error toggling like: ", error);
-      toast({
-        variant: "destructive",
-        title: t('error_title'),
-        description: t('like_error'),
-      });
-    } finally {
-      setLikeLoading(false);
-    }
+    startTransition(() => {
+      toggleLike({
+        postId: post.id as string,
+        userId: user.id,
+        authorId: post.author.id,
+        path: pathname,
+      })
+    });
   };
   
   const handleShare = (platform: 'facebook' | 'twitter' | 'whatsapp' | 'copy') => {
@@ -141,7 +97,7 @@ export function PostCard({ post, user }: PostCardProps) {
     window.open(shareUrl, '_blank', 'noopener,noreferrer');
   };
 
-  const formattedDate = post.createdAt?.toDate ? formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true, locale: locale === 'bn' ? bn : enUS }) : t('a_moment_ago');
+  const formattedDate = post.createdAt ? formatDistanceToNow(new Date(post.createdAt as any), { addSuffix: true, locale: locale === 'bn' ? bn : enUS }) : t('a_moment_ago');
 
   if (!post.author) {
     return (
@@ -191,13 +147,15 @@ export function PostCard({ post, user }: PostCardProps) {
       </CardContent>
       <CardFooter className="p-4 pt-2">
         <div className="flex justify-start gap-4 text-muted-foreground">
-          <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={handleLikeToggle} disabled={!user || likeLoading}>
-            <Heart className={cn("h-5 w-5", isLiked && 'fill-red-500 text-red-500')} />
-            <span>{(likeCount || 0).toLocaleString(locale as string)}</span>
+          <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={handleLikeToggle} disabled={!user || isPending}>
+            {isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : 
+              <Heart className={cn("h-5 w-5", optimisticLikes.isLiked && 'fill-red-500 text-red-500')} />
+            }
+            <span>{(optimisticLikes.count).toLocaleString(locale as string)}</span>
           </Button>
           <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={() => setIsCommentSheetOpen(true)} disabled={!user}>
             <MessageCircle className="h-5 w-5" />
-            <span>{(commentCount || 0).toLocaleString(locale as string)}</span>
+            <span>{(post.comments || 0).toLocaleString(locale as string)}</span>
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -221,7 +179,7 @@ export function PostCard({ post, user }: PostCardProps) {
         </div>
       </CardFooter>
     </Card>
-    {user && post.id && post.author && <CommentSheet postId={post.id} postContent={post.content} author={post.author} open={isCommentSheetOpen} onOpenChange={setIsCommentSheetOpen} />}
+    {user && post.id && post.author && <CommentSheet postId={post.id as string} postAuthorId={post.author.id} open={isCommentSheetOpen} onOpenChange={setIsCommentSheetOpen} />}
     </>
   );
 }

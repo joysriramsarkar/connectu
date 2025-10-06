@@ -1,39 +1,27 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { collection, query, where, getDocs, doc, getDoc, or } from 'firebase/firestore';
-import { db, auth } from '@/lib/firebase';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Post, User } from '@/lib/data';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from '@/components/post-card';
-import { Loader2, Search as SearchIcon } from 'lucide-react';
-import { useAuthState } from 'react-firebase-hooks/auth';
 import { Card, CardContent } from '@/components/ui/card';
+import { Loader2, Search as SearchIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/context/i18n';
-
-async function getUserProfile(userId: string): Promise<User | null> {
-    if (!userId || !db) return null;
-    const userDocRef = doc(db, "users", userId);
-    const userDoc = await getDoc(userDocRef);
-    if (userDoc.exists()) {
-      return { id: userDoc.id, ...userDoc.data() } as User;
-    }
-    return null;
-}
+import { searchPostsAndUsers } from './actions';
 
 export function SearchComponent() {
     const searchParams = useSearchParams();
+    const router = useRouter();
     const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
     const [posts, setPosts] = useState<Post[]>([]);
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
-    const [currentUser] = useAuthState(auth!);
     const { t } = useI18n();
 
     useEffect(() => {
@@ -44,43 +32,25 @@ export function SearchComponent() {
                 setHasSearched(false);
                 return;
             }
-            if (!db) return;
             setLoading(true);
             setHasSearched(true);
 
             try {
-                const searchTermLower = searchTerm.toLowerCase();
-
-                // Search for users by name OR handle.
-                // NOTE: This is still not a full-text search. For better results, a dedicated search service like Algolia is recommended.
-                const usersQuery = query(
-                    collection(db, 'users'),
-                    or(
-                        where('name_lowercase', '>=', searchTermLower),
-                        where('name_lowercase', '<=', searchTermLower + '\uf8ff'),
-                        where('handle', '>=', searchTermLower),
-                        where('handle', '<=', searchTermLower + '\uf8ff')
-                    )
-                );
-                const usersSnapshot = await getDocs(usersQuery);
-                setUsers(usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as User));
-
-                // Search for posts (simple content search)
-                const postsQuery = query(collection(db, 'posts'), 
-                    where('content', '>=', searchTerm),
-                    where('content', '<=', searchTerm + '\uf8ff')
-                );
-                const postsSnapshot = await getDocs(postsQuery);
-                const postsData = await Promise.all(
-                    postsSnapshot.docs
-                        .filter(doc => doc.data().content.toLowerCase().includes(searchTermLower))
-                        .map(async (doc) => {
-                            const postData = doc.data();
-                            const author = await getUserProfile(postData.authorId);
-                            return { id: doc.id, ...postData, author } as Post;
-                        })
-                );
-                setPosts(postsData.filter(p => p.author));
+                // We will use a server action to perform the search
+                searchPostsAndUsers(searchTerm).then(results => {
+                    if (results) {
+                        // The data from server actions needs to be parsed as it's serialized
+                        setPosts(JSON.parse(results.posts) as Post[]);
+                        setUsers(JSON.parse(results.users) as User[]);
+                    } else {
+                        setPosts([]);
+                        setUsers([]);
+                    }
+                }).catch(error => {
+                    console.error("Error during search: ", error);
+                    setPosts([]);
+                    setUsers([]);
+                });
 
             } catch(error) {
                 console.error("Error during search: ", error);
@@ -92,12 +62,20 @@ export function SearchComponent() {
         };
 
         const timeoutId = setTimeout(() => {
+            // Update URL without reloading the page
+            const params = new URLSearchParams(window.location.search);
+            if (searchTerm) {
+                params.set('q', searchTerm);
+            } else {
+                params.delete('q');
+            }
+            router.replace(`${window.location.pathname}?${params.toString()}`);
             performSearch();
         }, 500); // Debounce search for 500ms
 
         return () => clearTimeout(timeoutId);
 
-    }, [searchTerm]);
+    }, [searchTerm, router]);
 
     const renderWelcomeMessage = () => (
         <div className="text-center py-16 text-muted-foreground">
@@ -133,7 +111,7 @@ export function SearchComponent() {
                     </TabsList>
                     <TabsContent value="posts" className="mt-4 space-y-4">
                         {posts.length > 0 ? (
-                            posts.map(post => <PostCard key={post.id} post={post} user={currentUser} />)
+                            posts.map(post => <PostCard key={post.id} post={post} />)
                         ) : (
                             <div className="text-center py-16 text-muted-foreground">
                                 <p>&quot;{searchTerm}&quot; {t('no_posts_found_for')}</p>

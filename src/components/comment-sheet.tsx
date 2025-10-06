@@ -1,210 +1,122 @@
-
 "use client";
 
-import { useState, useEffect } from "react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
+import { useState, useEffect, useTransition } from 'react';
+import { useSession } from 'next-auth/react';
+import { usePathname } from 'next/navigation';
+import { formatDistanceToNow } from 'date-fns';
+import { bn, enUS } from 'date-fns/locale';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Send } from "lucide-react";
-import { db, auth } from "@/lib/firebase";
-import {
-  collection,
-  query,
-  orderBy,
-  onSnapshot,
-  addDoc,
-  serverTimestamp,
-  doc,
-  getDoc,
-  increment,
-  writeBatch,
-} from "firebase/firestore";
-import { useAuthState } from "react-firebase-hooks/auth";
-import type { Comment, User } from "@/lib/data";
-import { formatDistanceToNow } from "date-fns";
-import { bn, enUS } from 'date-fns/locale';
-import Link from "next/link";
-import { useToast } from "@/hooks/use-toast";
-import { useI18n } from "@/context/i18n";
-
+import { Loader2, Send } from 'lucide-react';
+import { useI18n } from '@/context/i18n';
+import { Comment } from '@/lib/data';
+import { addComment, getComments } from '@/lib/post.actions';
 
 interface CommentSheetProps {
   postId: string;
-  postContent: string;
-  author: User;
+  postAuthorId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-async function getUserProfile(userId: string): Promise<User | null> {
-    if (!userId || !db) return null;
-    const userDocRef = doc(db, "users", userId);
-    const userDoc = await getDoc(userDocRef);
-    if (userDoc.exists()) {
-      return { id: userDoc.id, ...userDoc.data() } as User;
-    }
-    return null;
-}
-
-export function CommentSheet({ postId, postContent, author, open, onOpenChange }: CommentSheetProps) {
-  const [user] = useAuthState(auth!);
-  const { toast } = useToast();
+export function CommentSheet({ postId, postAuthorId, open, onOpenChange }: CommentSheetProps) {
+  const { data: session } = useSession();
+  const user = session?.user;
+  const pathname = usePathname();
   const { t, locale } = useI18n();
+  const [isPending, startTransition] = useTransition();
   const [comments, setComments] = useState<Comment[]>([]);
-  const [newComment, setNewComment] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const [newComment, setNewComment] = useState('');
+  const [isLoadingComments, setIsLoadingComments] = useState(true);
 
   useEffect(() => {
-    if (!open || !db) return;
-    setLoading(true);
-    const q = query(
-      collection(db, "posts", postId, "comments"),
-      orderBy("createdAt", "desc")
-    );
-
-    const unsubscribe = onSnapshot(q, async (querySnapshot) => {
-      const commentsData = await Promise.all(
-        querySnapshot.docs.map(async (doc) => {
-          const commentData = doc.data();
-          const author = await getUserProfile(commentData.authorId);
-          return { id: doc.id, ...commentData, author } as Comment;
-        })
-      );
-      setComments(commentsData.filter(c => c.author));
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [postId, open]);
-
-  const handleAddComment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newComment.trim() || !user || submitting || !author || !db) return;
-
-    setSubmitting(true);
-    
-    const postRef = doc(db, "posts", postId);
-    const commentsColRef = collection(postRef, "comments");
-    const notificationsColRef = collection(db, 'notifications');
-
-    try {
-        const batch = writeBatch(db);
-        
-        const newCommentRef = doc(commentsColRef);
-        batch.set(newCommentRef, {
-            authorId: user.uid,
-            content: newComment.trim(),
-            createdAt: serverTimestamp(),
-        });
-
-        batch.update(postRef, { comments: increment(1) });
-        
-        if (user.uid !== author.id) {
-            batch.set(doc(notificationsColRef), {
-                type: 'comment',
-                senderId: user.uid,
-                recipientId: author.id,
-                postId: postId,
-                postContent: postContent,
-                createdAt: serverTimestamp(),
-                read: false,
-            });
-        }
-
-        await batch.commit();
-
-        setNewComment("");
-        toast({
-            title: t('success_title'),
-            description: t('comment_added_success')
-        })
-    } catch (error) {
-        console.error("Error adding comment: ", error);
-        toast({
-            variant: "destructive",
-            title: t('error_title'),
-            description: t('comment_add_failed')
-        })
-    } finally {
-        setSubmitting(false);
+    if (open) {
+      setIsLoadingComments(true);
+      getComments(postId)
+        .then((data: Comment[]) => setComments(data))
+        .finally(() => setIsLoadingComments(false));
     }
+  }, [open, postId]);
+
+  const handleCommentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newComment.trim() || !user) return;
+
+    startTransition(async () => {
+      await addComment({
+        postId,
+        userId: user.id,
+        authorId: postAuthorId,
+        content: newComment,
+        path: pathname,
+      });
+      setNewComment('');
+      // Refresh comments list
+      const updatedComments = await getComments(postId);
+      setComments(updatedComments);
+    });
   };
-  
-  const formatTimestamp = (timestamp: any) => {
-    if (!timestamp?.toDate) return '';
-    return formatDistanceToNow(timestamp.toDate(), { addSuffix: true, locale: locale === 'bn' ? bn : enUS });
-  }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="flex flex-col">
         <SheetHeader>
-          <SheetTitle>{author.name}-er {t('comment_on_post')}</SheetTitle>
-          <SheetDescription>
-            {t('view_all_comments_here')}
-          </SheetDescription>
+          <SheetTitle>{t('comments')}</SheetTitle>
         </SheetHeader>
-        <div className="flex-1 flex flex-col min-h-0">
-            {loading ? (
-                 <div className="flex-1 flex items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                 </div>
-            ) : comments.length > 0 ? (
-                <ScrollArea className="flex-1 pr-4 -mr-4">
-                    <div className="space-y-6">
-                    {comments.map((comment) => (
-                        <div key={comment.id} className="flex gap-3">
-                            <Link href={`/profile/${comment.author.id}`}>
-                                <Avatar>
-                                    <AvatarImage src={comment.author.avatar} alt={comment.author.name} />
-                                    <AvatarFallback>{comment.author.name.substring(0, 2)}</AvatarFallback>
-                                </Avatar>
-                            </Link>
-                            <div>
-                                <div className="flex items-center gap-2">
-                                <Link href={`/profile/${comment.author.id}`} className="font-bold hover:underline">{comment.author.name}</Link>
-                                <span className="text-xs text-muted-foreground">{formatTimestamp(comment.createdAt)}</span>
-                                </div>
-                                <p>{comment.content}</p>
-                            </div>
-                        </div>
-                    ))}
+        <ScrollArea className="flex-1 pr-4 -mr-6">
+          {isLoadingComments ? (
+            <div className="flex justify-center items-center h-full">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : comments.length > 0 ? (
+            <div className="space-y-4">
+              {comments.map((comment) => (
+                <div key={comment.id as string} className="flex items-start gap-3">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={comment.author.avatar} alt={comment.author.name} />
+                    <AvatarFallback>{comment.author.name.substring(0, 2)}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <div className="bg-muted rounded-lg p-2">
+                      <p className="font-semibold text-sm">{comment.author.name}</p>
+                      <p className="text-sm">{comment.content}</p>
                     </div>
-                </ScrollArea>
-            ) : (
-                <div className="flex-1 flex items-center justify-center">
-                    <p className="text-muted-foreground">{t('no_comments_yet')}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {formatDistanceToNow(new Date(comment.createdAt as any), { addSuffix: true, locale: locale === 'bn' ? bn : enUS })}
+                    </p>
+                  </div>
                 </div>
-            )}
-            <form onSubmit={handleAddComment} className="mt-4 border-t pt-4">
-            <div className="relative">
-                <Textarea
-                placeholder={t('add_your_comment')}
+              ))}
+            </div>
+          ) : (
+            <div className="text-center text-muted-foreground py-16">
+              <p>{t('no_comments_yet')}</p>
+              <p className="text-sm">{t('be_the_first_to_comment')}</p>
+            </div>
+          )}
+        </ScrollArea>
+        <SheetFooter>
+          {user && (
+            <form onSubmit={handleCommentSubmit} className="flex items-center gap-2 w-full">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={user.image || ''} />
+                <AvatarFallback>{user.name?.substring(0, 2)}</AvatarFallback>
+              </Avatar>
+              <Input
+                placeholder={t('add_a_comment')}
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
-                className="pr-16"
-                disabled={submitting}
-                />
-                <Button
-                type="submit"
-                size="icon"
-                className="absolute right-2 top-2"
-                disabled={!newComment.trim() || submitting}
-                >
-                {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                </Button>
-            </div>
+                disabled={isPending}
+              />
+              <Button type="submit" size="icon" disabled={!newComment.trim() || isPending}>
+                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              </Button>
             </form>
-        </div>
+          )}
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   );
