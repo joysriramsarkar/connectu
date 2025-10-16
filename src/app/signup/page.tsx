@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { createUserWithEmailAndPassword, signInWithPopup, signInAnonymously, onAuthStateChanged, RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from "firebase/auth";
 import { FirebaseError } from 'firebase/app';
 import { auth, googleProvider } from '@/lib/firebase';
@@ -58,8 +59,11 @@ export default function SignupPage() {
 
   useEffect(() => {
     if (!auth) return;
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
+        const idToken = await user.getIdToken();
+        await signIn("credentials", { idToken });
+
         toast({
             title: t('success_title'),
             description: t('account_created_success'),
