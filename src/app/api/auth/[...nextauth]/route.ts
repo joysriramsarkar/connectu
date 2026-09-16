@@ -1,48 +1,41 @@
 
 import NextAuth from "next-auth"
+import type { AuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import CredentialsProvider from "next-auth/providers/credentials"
-import { MongoDBAdapter } from "@auth/mongodb-adapter"
-import clientPromise from "@/lib/mongodb"
-import admin from "firebase-admin"
+import PostgresAdapter from "@auth/pg-adapter"
+import bcrypt from "bcrypt"
+import { pool, query } from "@/lib/neon"
 
-// Initialize Firebase Admin SDK
-// Make sure to set the FIREBASE_SERVICE_ACCOUNT_KEY environment variable
-const serviceAccount = JSON.parse(
-  process.env.FIREBASE_SERVICE_ACCOUNT_KEY as string
-);
-
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
-}
-
-export const authOptions = {
-  adapter: MongoDBAdapter(clientPromise),
+export const authOptions: AuthOptions = {
+  adapter: PostgresAdapter(pool),
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
     }),
     CredentialsProvider({
-      name: "Firebase",
+      name: "Email",
       credentials: {
-        idToken: { label: "Firebase ID Token", type: "text" },
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.idToken) {
+        if (!credentials?.email || !credentials.password) {
           return null;
         }
         try {
-          const decodedToken = await admin.auth().verifyIdToken(credentials.idToken);
-          const { uid, email, name, picture } = decodedToken;
-          
-          // The adapter will handle user creation/linking
-          return { id: uid, email, name, image: picture };
-
+          const result = await query<{ id: string; email: string; name: string; password_hash: string }>(
+            "SELECT id, email, name, password_hash FROM users WHERE email = $1 LIMIT 1",
+            [credentials.email.toLowerCase()],
+          );
+          const user = result.rows[0];
+          if (!user?.password_hash || !(await bcrypt.compare(credentials.password, user.password_hash))) {
+            return null;
+          }
+          return { id: user.id, email: user.email, name: user.name };
         } catch (error) {
-          console.error("Firebase token verification failed:", error);
+          console.error("Credentials authentication failed:", error);
           return null;
         }
       },

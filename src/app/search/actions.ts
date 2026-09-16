@@ -1,8 +1,7 @@
 'use server';
 
-import clientPromise from '@/lib/mongodb';
+import { query } from '@/lib/neon';
 import { Post, User } from '@/lib/data';
-import { ObjectId } from 'mongodb';
 
 export async function searchPostsAndUsers(searchTerm: string) {
   if (!searchTerm.trim()) {
@@ -10,50 +9,25 @@ export async function searchPostsAndUsers(searchTerm: string) {
   }
 
   try {
-    const client = await clientPromise;
-    const db = client.db(); // Use your database name if you have one, otherwise it uses the default from the connection string.
-
-    const searchTermLower = searchTerm.toLowerCase();
-
-    // Search for users by name OR handle using a case-insensitive regex
-    const usersCursor = db.collection<User>('users').find({
-      $or: [
-        { name_lowercase: { $regex: searchTermLower, $options: 'i' } },
-        { handle: { $regex: searchTermLower, $options: 'i' } },
-      ],
-    });
-    const users = await usersCursor.toArray();
-
-    // Search for posts using a text index for better performance.
-    // NOTE: You need to create a text index on the 'content' field in your 'posts' collection in MongoDB Atlas.
-    // db.posts.createIndex({ content: "text" })
-    const postsWithAuthors = await db.collection('posts').aggregate<Post>([
-        {
-            $search: {
-                index: 'default', // Or your specific search index name
-                text: {
-                    query: searchTerm,
-                    path: {
-                        'wildcard': '*'
-                    }
-                }
-            }
-        },
-        {
-            $lookup: {
-                from: 'users',
-                localField: 'authorId',
-                foreignField: '_id', // Assuming authorId stores ObjectId of the user
-                as: 'author'
-            }
-        },
-        { $unwind: '$author' } // Convert author array to a single object
-    ]).toArray();
-
-    // Convert ObjectId to string for serialization
-    const serialize = (data: any[]) => JSON.stringify(data.map(d => ({ ...d, _id: d._id.toString(), id: d._id.toString() })));
-
-    return { posts: serialize(postsWithAuthors), users: serialize(users) };
+    const pattern = `%${searchTerm.trim()}%`;
+    const usersResult = await query<User>(
+      `SELECT id, name, handle, avatar, cover_photo AS "coverPhoto", bio, followers, following
+       FROM users WHERE name ILIKE $1 OR handle ILIKE $1 ORDER BY name LIMIT 20`,
+      [pattern],
+    );
+    const postsResult = await query<Post>(
+      `SELECT p.id, p.author_id AS "authorId", p.content, p.image, p.likes, p.comments,
+              p.created_at AS "createdAt",
+              json_build_object('id', u.id, 'name', u.name, 'handle', u.handle, 'avatar', u.avatar,
+                'coverPhoto', u.cover_photo, 'bio', u.bio, 'followers', u.followers, 'following', u.following) AS author
+       FROM posts p JOIN users u ON u.id = p.author_id
+       WHERE p.content ILIKE $1 ORDER BY p.created_at DESC LIMIT 20`,
+      [pattern],
+    );
+    return {
+      posts: JSON.stringify(postsResult.rows),
+      users: JSON.stringify(usersResult.rows),
+    };
   } catch (error) {
     console.error('Search failed:', error);
     return { posts: '[]', users: '[]' };
