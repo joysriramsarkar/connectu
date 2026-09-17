@@ -10,7 +10,7 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon_Serverless-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://neon.tech/)
 [![Firebase](https://img.shields.io/badge/Firebase-Auth_%26_Storage-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/)
 [![Google Genkit AI](https://img.shields.io/badge/AI-Google_Genkit_Gemini-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://firebase.google.com/docs/genkit)
-[![SonarCloud](https://sonarcloud.io/api/project_badges/measure?project=joysriramsarkar_connectu&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=joysriramsarkar_connectu)
+[![CI Pipeline](https://github.com/joysriramsarkar/connectu/actions/workflows/ci.yml/badge.svg)](https://github.com/joysriramsarkar/connectu/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
 
 <p align="center">
@@ -75,7 +75,7 @@ graph TD
     B -->|Identity & Sessions| D[Firebase Auth / JWT Engine]
     B -->|Media Assets| E[Firebase Cloud Storage]
     B -->|Genkit AI Flows| F[Google Gemini 2.5 Flash]
-    G[GitHub Actions] -->|Automated Checks| H[CI & SonarCloud Quality Gate]
+    G[GitHub Actions] -->|Automated Checks| H[CI & CodeQL Security Gate]
 ```
 
 ### Core Technologies
@@ -89,7 +89,7 @@ graph TD
 | **Auth & Media** | [Firebase](https://firebase.google.com/) (`v11`), [Jose](https://github.com/panva/jose) | Authentication, Cloud Storage, and secure HS256 JWT tokens |
 | **Artificial Intelligence**| [Google Genkit](https://firebase.google.com/docs/genkit) (`@genkit-ai/googleai`) | Agentic flows with Gemini 2.5 Flash for hashtag & content insights |
 | **Icons & Visuals** | [Lucide React](https://lucide.dev/) | Clean, consistent icons |
-| **Code Analysis** | [SonarCloud](https://sonarcloud.io/), [ESLint 9](https://eslint.org/), [CodeQL](https://codeql.github.com/) | Automated static analysis, vulnerability scans, and code health metrics |
+| **Code Analysis** | [ESLint 9](https://eslint.org/), [CodeQL](https://codeql.github.com/), [TypeScript Strict](https://www.typescriptlang.org/) | Automated static analysis, vulnerability scans, and code health metrics |
 
 ---
 
@@ -228,13 +228,10 @@ npm run build
 1. **Continuous Integration (`ci.yml`)**:
    - Runs on every `push` and `pull_request` targeting `main`.
    - Executes ESLint validation, strict TypeScript checking, and production build verification.
-2. **SonarCloud Code Quality Gate (`sonarcloud.yml`)**:
-   - Performs deep static analysis for bugs, code smells, security hotspots, and reliability issues.
-   - Synchronizes directly with the [SonarCloud Dashboard](https://sonarcloud.io/summary/new_code?id=joysriramsarkar_connectu).
-3. **CodeQL Security Analysis (`security.yml`)**:
+2. **CodeQL Security Analysis (`security.yml`)**:
    - GitHub Advanced Security static analysis (SAST) for vulnerability prevention.
    - Scheduled weekly audits and critical dependency vulnerability checks.
-4. **Dependabot Updates (`dependabot.yml`)**:
+3. **Dependabot Updates (`dependabot.yml`)**:
    - Automated weekly PRs for keeping npm dependencies and GitHub Actions up to date.
 
 ---
