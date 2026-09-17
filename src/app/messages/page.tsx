@@ -69,7 +69,7 @@ function MessagesContent() {
   useEffect(() => {
     if (!firebaseUser || !targetUserId) return;
 
-    const deterministicConvId = [firebaseUser.uid, targetUserId].sort().join("_");
+    const deterministicConvId = [firebaseUser.uid, targetUserId].sort((a, b) => a.localeCompare(b)).join("_");
 
     // Immediately open conversation in UI (0ms delay!)
     const instantConv: Conversation = {

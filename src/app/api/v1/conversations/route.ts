@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
     }
 
     const recipient = recipientResult.rows[0];
-    const conversationId = [currentUserId, recipientId].sort().join("_");
+    const conversationId = [currentUserId, recipientId].sort((a, b) => a.localeCompare(b)).join("_");
 
     // Execute in a single fast data-modifying CTE query
     await query(
