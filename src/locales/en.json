@@ -1,6 +1,7 @@
 
 {
     "app_name": "ConnectU",
+    "feed_error": "Failed to load feed. Please try again.",
     "login_to_connectu": "Log in to ConnectU",
     "enter_email_password": "Enter your email and password to access your account",
     "use_phone_to_login": "Log in with your phone number",

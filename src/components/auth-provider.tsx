@@ -1,11 +1,13 @@
 "use client";
 
-import { SessionProvider } from "next-auth/react";
+/**
+ * AuthProvider wraps the app with Firebase Auth context.
+ * This replaces the NextAuth SessionProvider which was incompatible
+ * with the CredentialsProvider + database session strategy combination.
+ */
 
-export default function AuthProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return <SessionProvider>{children}</SessionProvider>;
+import { FirebaseAuthProvider } from "@/context/auth";
+
+export default function AuthProvider({ children }: { children: React.ReactNode }) {
+  return <FirebaseAuthProvider>{children}</FirebaseAuthProvider>;
 }

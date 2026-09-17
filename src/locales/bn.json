@@ -1,6 +1,7 @@
 
 {
     "app_name": "ConnectU",
+    "feed_error": "ফিড লোড করতে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।",
     "login_to_connectu": "ConnectU-তে লগ ইন করুন",
     "enter_email_password": "আপনার অ্যাকাউন্টে প্রবেশ করতে ইমেল এবং পাসওয়ার্ড লিখুন",
     "use_phone_to_login": "আপনার ফোন নম্বর দিয়ে লগ ইন করুন",

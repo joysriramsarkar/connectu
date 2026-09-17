@@ -1,32 +1,31 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInAnonymously, RecaptchaVerifier, signInWithPhoneNumber, Auth } from "firebase/auth";
-import { getFirestore, Firestore } from "firebase/firestore";
-import { getStorage, FirebaseStorage } from "firebase/storage";
+/**
+ * Firebase Client SDK — DEPRECATED / REMOVED
+ *
+ * ConnectU has completely migrated to:
+ * - PostgreSQL (`@/lib/neon`)
+ * - Native JWT Session (`@/lib/jwt`)
+ * - Local uploads (`/api/v1/upload`)
+ *
+ * This file is retained as an empty stub for any legacy references.
+ */
 
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
-};
+export const app = null;
+export const auth = null;
+export const db = null;
+export const storage = null;
+export const googleProvider = null;
 
-const app: FirebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-
-const auth: Auth = getAuth(app);
-const db: Firestore = getFirestore(app);
-const storage: FirebaseStorage = getStorage(app);
-const googleProvider: GoogleAuthProvider = new GoogleAuthProvider();
-
-
-// Add this to the global window object
-declare global {
-    interface Window {
-        recaptchaVerifier: RecaptchaVerifier;
-    }
+export async function signInAnonymously() {
+  throw new Error("Firebase has been removed. Use native ConnectU authentication.");
 }
 
-export { app, auth, db, storage, googleProvider, signInAnonymously, RecaptchaVerifier, signInWithPhoneNumber };
+export async function signInWithPhoneNumber() {
+  throw new Error("Firebase has been removed. Use native ConnectU authentication.");
+}
+
+export class RecaptchaVerifier {
+  constructor() {}
+  clear() {}
+  render() { return Promise.resolve(0); }
+  verify() { return Promise.resolve(""); }
+}

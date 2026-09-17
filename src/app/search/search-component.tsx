@@ -13,11 +13,16 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/context/i18n';
 import { searchPostsAndUsers } from './actions';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/context/auth';
 
 export function SearchComponent() {
-    const { data: session } = useSession();
-    const user = session?.user;
+    const { firebaseUser, idToken } = useAuth();
+    const authUser = firebaseUser ? {
+        id: firebaseUser.uid,
+        name: firebaseUser.displayName ?? null,
+        email: firebaseUser.email ?? null,
+        image: firebaseUser.photoURL ?? null,
+    } : null;
     const searchParams = useSearchParams();
     const router = useRouter();
     const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
@@ -114,7 +119,7 @@ export function SearchComponent() {
                     </TabsList>
                     <TabsContent value="posts" className="mt-4 space-y-4">
                         {posts.length > 0 ? (
-                            posts.map(post => <PostCard key={post.id} post={post} user={user || null} />)
+                            posts.map(post => <PostCard key={post.id} post={post} user={authUser} idToken={idToken} />)
                         ) : (
                             <div className="text-center py-16 text-muted-foreground">
                                 <p>&quot;{searchTerm}&quot; {t('no_posts_found_for')}</p>

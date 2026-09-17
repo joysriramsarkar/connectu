@@ -1,35 +1,48 @@
 "use client";
 
-import { useState, useEffect, useTransition } from 'react';
-import { useSession } from 'next-auth/react';
-import { usePathname } from 'next/navigation';
-import { formatDistanceToNow } from 'date-fns';
-import { bn, enUS } from 'date-fns/locale';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
+import { useState, useEffect, useTransition } from "react";
+import { usePathname } from "next/navigation";
+import { formatDistanceToNow } from "date-fns";
+import { bn, enUS } from "date-fns/locale";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter,
+} from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Send } from 'lucide-react';
-import { useI18n } from '@/context/i18n';
-import { Comment } from '@/lib/data';
-import { addComment, getComments } from '@/lib/post.actions';
+import { Loader2, Send } from "lucide-react";
+import { useI18n } from "@/context/i18n";
+import { useAuth } from "@/context/auth";
+import { Comment } from "@/lib/data";
+import { addComment, getComments } from "@/lib/post.actions";
 
 interface CommentSheetProps {
   postId: string;
   postAuthorId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Firebase ID token — required to post comments */
+  idToken?: string | null;
 }
 
-export function CommentSheet({ postId, postAuthorId, open, onOpenChange }: CommentSheetProps) {
-  const { data: session } = useSession();
-  const user = session?.user;
+export function CommentSheet({
+  postId,
+  postAuthorId,
+  open,
+  onOpenChange,
+  idToken,
+}: CommentSheetProps) {
+  const { firebaseUser, appUser } = useAuth();
   const pathname = usePathname();
   const { t, locale } = useI18n();
   const [isPending, startTransition] = useTransition();
   const [comments, setComments] = useState<Comment[]>([]);
-  const [newComment, setNewComment] = useState('');
+  const [newComment, setNewComment] = useState("");
   const [isLoadingComments, setIsLoadingComments] = useState(true);
 
   useEffect(() => {
@@ -43,20 +56,23 @@ export function CommentSheet({ postId, postAuthorId, open, onOpenChange }: Comme
 
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newComment.trim() || !user) return;
+    if (!newComment.trim() || !firebaseUser || !idToken) return;
 
     startTransition(async () => {
-      await addComment({
-        postId,
-        userId: user.id,
-        authorId: postAuthorId,
-        content: newComment,
-        path: pathname,
-      });
-      setNewComment('');
-      // Refresh comments list
-      const updatedComments = await getComments(postId);
-      setComments(updatedComments);
+      try {
+        // Pass idToken — server will verify and derive userId from it
+        await addComment({
+          postId,
+          idToken,
+          content: newComment,
+          path: pathname,
+        });
+        setNewComment("");
+        const updatedComments = await getComments(postId);
+        setComments(updatedComments);
+      } catch (err) {
+        console.error("Comment error:", err);
+      }
     });
   };
 
@@ -64,7 +80,7 @@ export function CommentSheet({ postId, postAuthorId, open, onOpenChange }: Comme
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="flex flex-col">
         <SheetHeader>
-          <SheetTitle>{t('comments')}</SheetTitle>
+          <SheetTitle>{t("comments")}</SheetTitle>
         </SheetHeader>
         <ScrollArea className="flex-1 pr-4 -mr-6">
           {isLoadingComments ? (
@@ -85,7 +101,10 @@ export function CommentSheet({ postId, postAuthorId, open, onOpenChange }: Comme
                       <p className="text-sm">{comment.content}</p>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {formatDistanceToNow(new Date(comment.createdAt as any), { addSuffix: true, locale: locale === 'bn' ? bn : enUS })}
+                      {formatDistanceToNow(new Date(comment.createdAt as any), {
+                        addSuffix: true,
+                        locale: locale === "bn" ? bn : enUS,
+                      })}
                     </p>
                   </div>
                 </div>
@@ -93,26 +112,36 @@ export function CommentSheet({ postId, postAuthorId, open, onOpenChange }: Comme
             </div>
           ) : (
             <div className="text-center text-muted-foreground py-16">
-              <p>{t('no_comments_yet')}</p>
-              <p className="text-sm">{t('be_the_first_to_comment')}</p>
+              <p>{t("no_comments_yet")}</p>
+              <p className="text-sm">{t("be_the_first_to_comment")}</p>
             </div>
           )}
         </ScrollArea>
         <SheetFooter>
-          {user && (
+          {firebaseUser && idToken && (
             <form onSubmit={handleCommentSubmit} className="flex items-center gap-2 w-full">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={user.image || ''} />
-                <AvatarFallback>{user.name?.substring(0, 2)}</AvatarFallback>
+                <AvatarImage src={appUser?.avatar || firebaseUser.photoURL || ""} />
+                <AvatarFallback>
+                  {(appUser?.name || firebaseUser.displayName || "?").substring(0, 2)}
+                </AvatarFallback>
               </Avatar>
               <Input
-                placeholder={t('add_a_comment')}
+                placeholder={t("add_a_comment")}
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 disabled={isPending}
               />
-              <Button type="submit" size="icon" disabled={!newComment.trim() || isPending}>
-                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              <Button
+                type="submit"
+                size="icon"
+                disabled={!newComment.trim() || isPending}
+              >
+                {isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
               </Button>
             </form>
           )}

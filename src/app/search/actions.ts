@@ -21,7 +21,7 @@ export async function searchPostsAndUsers(searchTerm: string) {
               json_build_object('id', u.id, 'name', u.name, 'handle', u.handle, 'avatar', u.avatar,
                 'coverPhoto', u.cover_photo, 'bio', u.bio, 'followers', u.followers, 'following', u.following) AS author
        FROM posts p JOIN users u ON u.id = p.author_id
-       WHERE p.content ILIKE $1 ORDER BY p.created_at DESC LIMIT 20`,
+       WHERE p.content ILIKE $1 AND p.status = 'active' AND p.visibility = 'public' ORDER BY p.created_at DESC LIMIT 20`,
       [pattern],
     );
     return {
