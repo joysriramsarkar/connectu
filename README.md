@@ -168,10 +168,8 @@ Key environment variables configured in `.env.local`:
 ```text
 connectu/
 ├── .github/
-│   ├── dependabot.yml              # Dependabot security & update configuration
 │   └── workflows/
 │       ├── ci.yml                  # Linting, typecheck & build pipeline
-│       ├── sonarcloud.yml          # SonarCloud Quality Gate analysis
 │       └── security.yml            # CodeQL SAST and npm vulnerability scan
 ├── db/                             # SQL migrations, schema & seeds
 ├── public/                         # Static icons, logos, and images
@@ -208,7 +206,7 @@ connectu/
 
 ## 🛡️ Code Quality & CI/CD
 
-Quality, security, and performance are automated using GitHub Actions and SonarCloud:
+Quality, security, and performance are automated using GitHub Actions:
 
 ### Local Validation Scripts
 
@@ -231,8 +229,6 @@ npm run build
 2. **CodeQL Security Analysis (`security.yml`)**:
    - GitHub Advanced Security static analysis (SAST) for vulnerability prevention.
    - Scheduled weekly audits and critical dependency vulnerability checks.
-3. **Dependabot Updates (`dependabot.yml`)**:
-   - Automated weekly PRs for keeping npm dependencies and GitHub Actions up to date.
 
 ---
 
